@@ -1,14 +1,13 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Bytes, BytesN, Env, Vec};
-use soroban_sdk::xdr::ToXdr;
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Bytes, Env, Vec};
 
 #[derive(Clone)]
 #[contracttype]
-pub struct Message {
+pub struct InboxMessage {
     pub sender: Address,
+    pub content: Bytes,
     pub timestamp: u64,
-    pub content_hash: Bytes,
-    pub content_type: u32,
+    pub read: bool,
 }
 
 #[contract]
@@ -19,63 +18,54 @@ impl MessageContract {
     pub fn send_message(
         env: Env,
         sender: Address,
-        conversation_id: BytesN<32>,
-        content_hash: Bytes,
-        content_type: u32,
-    ) -> BytesN<32> {
+        recipient: Address,
+        content: Bytes,
+    ) {
         sender.require_auth();
         let timestamp = env.ledger().timestamp();
 
-        let mut preimage = Bytes::new(&env);
-        for b in conversation_id.to_array().iter() {
-            preimage.push_back(*b);
-        }
-        for b in sender.clone().to_xdr(&env).iter() {
-            preimage.push_back(b);
-        }
-        for b in timestamp.to_be_bytes().iter() {
-            preimage.push_back(*b);
-        }
-        preimage.append(&content_hash);
-        let message_id: BytesN<32> = env.crypto().sha256(&preimage).into();
-
-        env.storage()
-            .persistent()
-            .set::<BytesN<32>, Message>(&message_id, &Message {
-                sender,
-                timestamp,
-                content_hash,
-                content_type,
-            });
-
-        let mut conv_messages: Vec<BytesN<32>> = env
+        let mut inbox: Vec<InboxMessage> = env
             .storage()
             .persistent()
-            .get::<BytesN<32>, Vec<BytesN<32>>>(&conversation_id)
+            .get(&recipient)
             .unwrap_or_else(|| Vec::new(&env));
-        conv_messages.push_back(message_id.clone());
+
+        inbox.push_back(InboxMessage {
+            sender,
+            content,
+            timestamp,
+            read: false,
+        });
+
         env.storage()
             .persistent()
-            .set::<BytesN<32>, Vec<BytesN<32>>>(&conversation_id, &conv_messages);
+            .set(&recipient, &inbox);
 
-        message_id
+        env.events().publish(
+            ("MessageSent", sender.clone(), recipient.clone()),
+            timestamp,
+        );
     }
 
     pub fn get_messages(
         env: Env,
-        conversation_id: BytesN<32>,
+        user: Address,
         page: u32,
         page_size: u32,
-    ) -> Vec<Message> {
-        let conv_messages: Vec<BytesN<32>> = env
+    ) -> Vec<InboxMessage> {
+        let inbox: Vec<InboxMessage> = env
             .storage()
             .persistent()
-            .get::<BytesN<32>, Vec<BytesN<32>>>(&conversation_id)
+            .get(&user)
             .unwrap_or_else(|| Vec::new(&env));
 
-        let total = conv_messages.len();
+        let total = inbox.len() as u32;
         let start = page * page_size;
-        let end = if start + page_size > total { total } else { start + page_size };
+        let end = if start + page_size > total {
+            total
+        } else {
+            start + page_size
+        };
 
         if start >= total {
             return Vec::new(&env);
@@ -84,15 +74,34 @@ impl MessageContract {
         let mut result = Vec::new(&env);
         let mut i = start;
         while i < end {
-            let msg: Message = env
-                .storage()
-                .persistent()
-                .get::<BytesN<32>, Message>(&conv_messages.get(i).unwrap())
-                .unwrap();
-            result.push_back(msg);
+            result.push_back(inbox.get(i).unwrap());
             i += 1;
         }
         result
+    }
+
+    pub fn my_message_count(env: Env, user: Address) -> u32 {
+        let inbox = env
+            .storage()
+            .persistent()
+            .get::<Address, Vec<InboxMessage>>(&user)
+            .unwrap_or_else(|| Vec::new(&env));
+        inbox.len() as u32
+    }
+
+    pub fn mark_as_read(env: Env, caller: Address, index: u32) {
+        caller.require_auth();
+        let mut inbox = env
+            .storage()
+            .persistent()
+            .get::<Address, Vec<InboxMessage>>(&caller)
+            .unwrap();
+        let mut msg = inbox.get(index).unwrap();
+        msg.read = true;
+        inbox.set(index, msg);
+        env.storage()
+            .persistent()
+            .set(&caller, &inbox);
     }
 }
 
@@ -103,7 +112,7 @@ extern crate std;
 mod test {
     use super::*;
     use soroban_sdk::testutils::{Address as _, Ledger as _};
-    use soroban_sdk::{Bytes, BytesN, Env};
+    use soroban_sdk::{Bytes, Env};
 
     fn setup_env() -> (Env, MessageContractClient<'static>) {
         let env = Env::default();
@@ -113,182 +122,134 @@ mod test {
         (env, client)
     }
 
-    fn make_conversation_id(env: &Env, alice: &Address, bob: &Address) -> BytesN<32> {
-        let mut preimage = Bytes::new(env);
-        for b in alice.to_xdr(env).iter() {
-            preimage.push_back(b);
-        }
-        for b in bob.to_xdr(env).iter() {
-            preimage.push_back(b);
-        }
-        env.crypto().sha256(&preimage).into()
-    }
-
-    fn make_content_hash(env: &Env, val: &[u8; 32]) -> Bytes {
+    fn make_content(env: &Env, val: &[u8]) -> Bytes {
         Bytes::from_array(env, val)
     }
 
     #[test]
     fn test_send_and_get_messages() {
         let (env, client) = setup_env();
-        let sender = Address::generate(&env);
         let alice = Address::generate(&env);
         let bob = Address::generate(&env);
-        let conv_id = make_conversation_id(&env, &alice, &bob);
-        let content_hash = make_content_hash(&env, &[1u8; 32]);
+        let content = make_content(&env, b"hello bob");
 
-        let _message_id = client.send_message(&sender, &conv_id, &content_hash, &0u32);
-        let messages = client.get_messages(&conv_id, &0u32, &10u32);
+        client.send_message(&alice, &bob, &content);
+        let msgs = client.get_messages(&bob, &0u32, &10u32);
 
-        assert_eq!(messages.len(), 1, "should have 1 message");
-        let msg = messages.get(0).unwrap();
-        assert_eq!(msg.sender, sender);
-        assert_eq!(msg.content_hash, content_hash);
-        assert_eq!(msg.content_type, 0u32);
+        assert_eq!(msgs.len(), 1, "bob should have 1 message");
+        let msg = msgs.get(0).unwrap();
+        assert_eq!(msg.sender, alice);
+        assert_eq!(msg.content, content);
+        assert!(!msg.read, "new message should be unread");
     }
 
     #[test]
-    fn test_send_message_deterministic_id() {
+    fn test_multiple_messages_to_same_user() {
         let (env, client) = setup_env();
-        let sender = Address::generate(&env);
         let alice = Address::generate(&env);
         let bob = Address::generate(&env);
-        let conv_id = make_conversation_id(&env, &alice, &bob);
-        let content_hash = make_content_hash(&env, &[1u8; 32]);
 
-        let id1 = client.send_message(&sender, &conv_id, &content_hash, &0u32);
+        client.send_message(&alice, &bob, &make_content(&env, b"msg1"));
+        client.send_message(&alice, &bob, &make_content(&env, b"msg2"));
 
-        // Advance ledger so next message gets a different timestamp
-        env.ledger().set_timestamp(env.ledger().timestamp() + 1);
+        let msgs = client.get_messages(&bob, &0u32, &10u32);
+        assert_eq!(msgs.len(), 2, "bob should have 2 messages");
+    }
 
-        let id2 = client.send_message(&sender, &conv_id, &content_hash, &0u32);
+    #[test]
+    fn test_messages_from_different_senders() {
+        let (env, client) = setup_env();
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+        let charlie = Address::generate(&env);
 
-        assert_ne!(id1, id2, "different timestamps should produce different message IDs");
+        client.send_message(&alice, &bob, &make_content(&env, b"alice says hi"));
+        client.send_message(&charlie, &bob, &make_content(&env, b"charlie says hi"));
+
+        let msgs = client.get_messages(&bob, &0u32, &10u32);
+        assert_eq!(msgs.len(), 2);
+        assert_eq!(msgs.get(0).unwrap().sender, alice);
+        assert_eq!(msgs.get(1).unwrap().sender, charlie);
+    }
+
+    #[test]
+    fn test_mark_as_read() {
+        let (env, client) = setup_env();
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+
+        client.send_message(&alice, &bob, &make_content(&env, b"hello"));
+        client.mark_as_read(&bob, &0u32);
+
+        let msgs = client.get_messages(&bob, &0u32, &10u32);
+        assert!(msgs.get(0).unwrap().read, "message should be marked read");
+    }
+
+    #[test]
+    fn test_my_message_count() {
+        let (env, client) = setup_env();
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+
+        assert_eq!(client.my_message_count(&bob), 0, "no messages yet");
+
+        client.send_message(&alice, &bob, &make_content(&env, b"msg1"));
+        assert_eq!(client.my_message_count(&bob), 1);
+
+        client.send_message(&alice, &bob, &make_content(&env, b"msg2"));
+        assert_eq!(client.my_message_count(&bob), 2);
     }
 
     #[test]
     fn test_get_messages_pagination() {
         let (env, client) = setup_env();
-        let sender = Address::generate(&env);
         let alice = Address::generate(&env);
         let bob = Address::generate(&env);
-        let conv_id = make_conversation_id(&env, &alice, &bob);
 
-        // Send 5 messages
         for i in 0u8..5u8 {
-            let ch = make_content_hash(&env, &[i; 32]);
-            client.send_message(&sender, &conv_id, &ch, &(i as u32));
+            client.send_message(&alice, &bob, &make_content(&env, &[i]));
         }
 
-        // Page 0, size 2 → messages 0,1
-        let page0 = client.get_messages(&conv_id, &0u32, &2u32);
-        assert_eq!(page0.len(), 2, "page 0 should have 2 messages");
-
-        // Page 1, size 2 → messages 2,3
-        let page1 = client.get_messages(&conv_id, &1u32, &2u32);
-        assert_eq!(page1.len(), 2, "page 1 should have 2 messages");
-
-        // Page 2, size 2 → message 4
-        let page2 = client.get_messages(&conv_id, &2u32, &2u32);
-        assert_eq!(page2.len(), 1, "page 2 should have 1 message");
-
-        // Page 3, size 2 → empty
-        let page3 = client.get_messages(&conv_id, &3u32, &2u32);
-        assert!(page3.is_empty(), "page 3 should be empty");
+        assert_eq!(client.get_messages(&bob, &0u32, &2u32).len(), 2);
+        assert_eq!(client.get_messages(&bob, &1u32, &2u32).len(), 2);
+        assert_eq!(client.get_messages(&bob, &2u32, &2u32).len(), 1);
+        assert_eq!(client.get_messages(&bob, &3u32, &2u32).len(), 0);
     }
 
     #[test]
     fn test_get_messages_ordering() {
         let (env, client) = setup_env();
-        let sender = Address::generate(&env);
         let alice = Address::generate(&env);
         let bob = Address::generate(&env);
-        let conv_id = make_conversation_id(&env, &alice, &bob);
-
-        // Send messages with content_type 0,1,2 marking order
-        for i in 0u8..3u8 {
-            let ch = make_content_hash(&env, &[i; 32]);
-            client.send_message(&sender, &conv_id, &ch, &(i as u32));
-        }
-
-        let messages = client.get_messages(&conv_id, &0u32, &10u32);
-        assert_eq!(messages.len(), 3);
-        // Content types should be in order 0,1,2 (FIFO)
-        assert_eq!(messages.get(0).unwrap().content_type, 0u32);
-        assert_eq!(messages.get(1).unwrap().content_type, 1u32);
-        assert_eq!(messages.get(2).unwrap().content_type, 2u32);
-    }
-
-    #[test]
-    fn test_get_messages_unknown_conversation() {
-        let (env, client) = setup_env();
-        let alice = Address::generate(&env);
-        let bob = Address::generate(&env);
-        let conv_id = make_conversation_id(&env, &alice, &bob);
-
-        let messages = client.get_messages(&conv_id, &0u32, &10u32);
-        assert!(messages.is_empty(), "unknown conversation should return empty messages");
-    }
-
-    #[test]
-    fn test_multiple_conversations_isolation() {
-        let (env, client) = setup_env();
-        let sender = Address::generate(&env);
-        let alice = Address::generate(&env);
-        let bob = Address::generate(&env);
-        let charlie = Address::generate(&env);
-
-        let conv_ab = make_conversation_id(&env, &alice, &bob);
-        let conv_ac = make_conversation_id(&env, &alice, &charlie);
-
-        client.send_message(&sender, &conv_ab, &make_content_hash(&env, &[1u8; 32]), &0u32);
-        client.send_message(&sender, &conv_ac, &make_content_hash(&env, &[2u8; 32]), &0u32);
-
-        let msgs_ab = client.get_messages(&conv_ab, &0u32, &10u32);
-        let msgs_ac = client.get_messages(&conv_ac, &0u32, &10u32);
-
-        assert_eq!(msgs_ab.len(), 1, "conversation AB should have 1 message");
-        assert_eq!(msgs_ac.len(), 1, "conversation AC should have 1 message");
-        assert_ne!(msgs_ab.get(0).unwrap().content_hash, msgs_ac.get(0).unwrap().content_hash, "different conversations should have different messages");
-    }
-
-    #[test]
-    fn test_send_message_multiple_types() {
-        let (env, client) = setup_env();
-        let sender = Address::generate(&env);
-        let alice = Address::generate(&env);
-        let bob = Address::generate(&env);
-        let conv_id = make_conversation_id(&env, &alice, &bob);
-
-        client.send_message(&sender, &conv_id, &make_content_hash(&env, &[1u8; 32]), &0u32); // text
-        client.send_message(&sender, &conv_id, &make_content_hash(&env, &[2u8; 32]), &1u32); // image
-        client.send_message(&sender, &conv_id, &make_content_hash(&env, &[3u8; 32]), &2u32); // file
-        client.send_message(&sender, &conv_id, &make_content_hash(&env, &[4u8; 32]), &u32::MAX); // max
-
-        let messages = client.get_messages(&conv_id, &0u32, &10u32);
-        assert_eq!(messages.len(), 4);
-        assert_eq!(messages.get(0).unwrap().content_type, 0u32);
-        assert_eq!(messages.get(1).unwrap().content_type, 1u32);
-        assert_eq!(messages.get(2).unwrap().content_type, 2u32);
-        assert_eq!(messages.get(3).unwrap().content_type, u32::MAX);
-    }
-
-    #[test]
-    fn test_large_page_size() {
-        let (env, client) = setup_env();
-        let sender = Address::generate(&env);
-        let alice = Address::generate(&env);
-        let bob = Address::generate(&env);
-        let conv_id = make_conversation_id(&env, &alice, &bob);
 
         for i in 0u8..3u8 {
-            let ch = make_content_hash(&env, &[i; 32]);
-            client.send_message(&sender, &conv_id, &ch, &0u32);
+            client.send_message(&alice, &bob, &make_content(&env, &[i]));
         }
 
-        // Page size larger than total
-        let messages = client.get_messages(&conv_id, &0u32, &100u32);
-        assert_eq!(messages.len(), 3, "should return all messages when page size > total");
+        let msgs = client.get_messages(&bob, &0u32, &10u32);
+        assert_eq!(msgs.len(), 3);
+        // FIFO order
+        assert_eq!(msgs.get(0).unwrap().content.get(0).unwrap(), 0u8);
+        assert_eq!(msgs.get(1).unwrap().content.get(0).unwrap(), 1u8);
+        assert_eq!(msgs.get(2).unwrap().content.get(0).unwrap(), 2u8);
+    }
+
+    #[test]
+    fn test_send_message_fires_event() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register_contract(None, MessageContract);
+        let client = MessageContractClient::new(&env, &contract_id);
+
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+        client.send_message(&alice, &bob, &make_content(&env, b"event test"));
+
+        let events = env.events().all();
+        assert!(events.len() > 0, "should have fired an event");
+        let (topics, _data) = events.get(0).unwrap();
+        assert_eq!(topics.get(1).unwrap(), alice, "event topic 1 should be sender");
+        assert_eq!(topics.get(2).unwrap(), bob, "event topic 2 should be recipient");
     }
 
     #[test]
@@ -297,17 +258,68 @@ mod test {
         let contract_id = env.register_contract(None, MessageContract);
         let client = MessageContractClient::new(&env, &contract_id);
 
-        let _sender = Address::generate(&env);
-        let other = Address::generate(&env);
         let alice = Address::generate(&env);
         let bob = Address::generate(&env);
-        let conv_id = make_conversation_id(&env, &alice, &bob);
-        let ch = make_content_hash(&env, &[1u8; 32]);
 
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            // Pass `other` as sender — auth should fail
-            client.send_message(&other, &conv_id, &ch, &0u32);
+            client.send_message(&alice, &bob, &make_content(&env, b"no auth"));
         }));
-        assert!(result.is_err(), "send_message should panic when wrong sender used");
+        assert!(result.is_err(), "send_message should panic without auth");
+    }
+
+    #[test]
+    fn test_mark_as_read_panics_without_auth() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register_contract(None, MessageContract);
+        let client = MessageContractClient::new(&env, &contract_id);
+
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+        client.send_message(&alice, &bob, &make_content(&env, b"test"));
+
+        // Reset auth so the next call won't be auto-authorized
+        let client2 = MessageContractClient::new(&env, &contract_id);
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            client2.mark_as_read(&alice, &0u32);
+        }));
+        assert!(result.is_err(), "mark_as_read for another user should panic");
+    }
+
+    #[test]
+    fn test_inbox_isolation() {
+        let (env, client) = setup_env();
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+        let charlie = Address::generate(&env);
+
+        client.send_message(&alice, &bob, &make_content(&env, b"to bob"));
+        client.send_message(&alice, &charlie, &make_content(&env, b"to charlie"));
+
+        assert_eq!(client.get_messages(&bob, &0u32, &10u32).len(), 1);
+        assert_eq!(client.get_messages(&charlie, &0u32, &10u32).len(), 1);
+        assert_eq!(client.get_messages(&alice, &0u32, &10u32).len(), 0);
+    }
+
+    #[test]
+    fn test_large_page_size() {
+        let (env, client) = setup_env();
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+
+        for i in 0u8..3u8 {
+            client.send_message(&alice, &bob, &make_content(&env, &[i]));
+        }
+
+        let msgs = client.get_messages(&bob, &0u32, &100u32);
+        assert_eq!(msgs.len(), 3);
+    }
+
+    #[test]
+    fn test_empty_inbox() {
+        let (env, client) = setup_env();
+        let alice = Address::generate(&env);
+        let msgs = client.get_messages(&alice, &0u32, &10u32);
+        assert!(msgs.is_empty(), "empty inbox should return empty vec");
     }
 }

@@ -4,45 +4,49 @@ import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { readContract, arg } from '@/lib/soroban';
-import { hexDecode } from '@/lib/hex';
 
 export interface MessageData {
   sender: string;
   timestamp: number;
-  contentHash: string;
-  contentType: number;
+  content: string;
+  read: boolean;
 }
 
-interface RawMessage {
+interface RawInboxMessage {
   sender: string;
+  content: Uint8Array;
   timestamp: bigint | number;
-  content_hash: Uint8Array;
-  content_type: number;
+  read: boolean;
 }
 
-export function useMessages(conversationId: string, page = 0) {
+export function useMessages(peerAddress: string | undefined) {
   const { address } = useWallet();
 
   return useQuery<MessageData[]>({
-    queryKey: ['messages', conversationId, page, address],
-    enabled: !!conversationId && !!address,
+    queryKey: ['messages-inbox', address],
+    enabled: !!address && !!CONTRACT_IDS.messages,
     queryFn: async () => {
       if (!address || !CONTRACT_IDS.messages) return [];
 
       try {
-        const raw = await readContract<RawMessage[]>(
+        const raw = await readContract<RawInboxMessage[]>(
           CONTRACT_IDS.messages,
           'get_messages',
-          [arg.bytes(hexDecode(conversationId)), arg.u32(page), arg.u32(50)],
+          [arg.address(address), arg.u32(0), arg.u32(100)],
           address,
         );
 
-        return (raw ?? []).map((m) => ({
+        const all = (raw ?? []).map((m) => ({
           sender: m.sender,
           timestamp: Number(m.timestamp),
-          contentHash: new TextDecoder().decode(new Uint8Array(m.content_hash)),
-          contentType: Number(m.content_type),
+          content: new TextDecoder().decode(new Uint8Array(m.content)),
+          read: m.read,
         }));
+
+        if (peerAddress) {
+          return all.filter((m) => m.sender === peerAddress);
+        }
+        return all;
       } catch (err) {
         console.error('[useMessages] query failed:', err);
         return [];

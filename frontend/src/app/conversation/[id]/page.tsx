@@ -11,27 +11,23 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
 import { useMessages } from '@/hooks/useMessages';
 import { useConversations } from '@/hooks/useConversations';
+import { useProfile } from '@/hooks/useProfile';
 import { useWallet } from '@/components/wallet/WalletProvider';
-import { uploadToIPFS } from '@/lib/ipfs';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { writeContract, arg } from '@/lib/soroban';
-import { hexDecode } from '@/lib/hex';
 
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { address, isConnected, signTransaction } = useWallet();
-  const { data: messages, isLoading } = useMessages(id);
+  const peerAddress = id;
+  const { data: messages, isLoading } = useMessages(peerAddress);
   const { data: conversations } = useConversations();
+  const { data: peerProfile } = useProfile(peerAddress);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const peerAddress = useMemo(
-    () => conversations?.find((c) => c.conversationId === id)?.peerAddress ?? id,
-    [conversations, id],
-  );
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -41,20 +37,12 @@ export default function ConversationPage() {
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || sending || !address) return;
+    if (!text || sending || !address || !peerAddress) return;
 
     setSending(true);
     setSendError(null);
     try {
-      const encoded = new TextEncoder().encode(text);
-      let contentBytes: Uint8Array;
-      try {
-        const cid = await uploadToIPFS(new Blob([encoded]));
-        contentBytes = new TextEncoder().encode(cid);
-      } catch {
-        setSendError('IPFS pinning service not configured — message stored as plaintext');
-        contentBytes = encoded;
-      }
+      const contentBytes = new TextEncoder().encode(text);
 
       if (CONTRACT_IDS.messages) {
         await writeContract(
@@ -62,9 +50,8 @@ export default function ConversationPage() {
           'send_message',
           [
             arg.address(address),
-            arg.bytes(hexDecode(id)),
+            arg.address(peerAddress),
             arg.bytes(contentBytes),
-            arg.u32(0),
           ],
           address,
           signTransaction,
@@ -77,7 +64,7 @@ export default function ConversationPage() {
     } finally {
       setSending(false);
     }
-  }, [input, sending, address, id, signTransaction]);
+  }, [input, sending, address, peerAddress, signTransaction]);
 
   if (!isConnected) {
     return (
@@ -88,12 +75,13 @@ export default function ConversationPage() {
     );
   }
 
-  const shortPeer = `${peerAddress.slice(0, 8)}…${peerAddress.slice(-6)}`;
+  const displayName = peerProfile?.username
+    ? `@${peerProfile.username}`
+    : `${peerAddress.slice(0, 6)}…${peerAddress.slice(-4)}`;
 
   return (
-    <ChatShell activeId={id}>
+    <ChatShell activeId={peerAddress}>
       <div className="flex h-full flex-col">
-        {/* thread header */}
         <header className="flex items-center gap-3 border-b-2 border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3">
           <button
             onClick={() => router.push('/dashboard')}
@@ -105,7 +93,7 @@ export default function ConversationPage() {
           <Avatar seed={peerAddress} size={40} online />
           <div className="min-w-0 flex-1">
             <p className="truncate font-mono text-sm font-black tracking-tight text-white">
-              {shortPeer}
+              {displayName}
             </p>
             <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">
               <ShieldCheck className="h-3 w-3" strokeWidth={2} aria-hidden />
@@ -114,7 +102,6 @@ export default function ConversationPage() {
           </div>
         </header>
 
-        {/* messages */}
         <div
           ref={scrollRef}
           className="flex flex-1 flex-col gap-3 overflow-y-auto bg-grid p-4 sm:p-6"
@@ -137,22 +124,20 @@ export default function ConversationPage() {
               key={`${msg.timestamp}-${i}`}
               sender={msg.sender}
               timestamp={msg.timestamp}
-              contentHash={msg.contentHash}
-              contentType={msg.contentType}
+              content={msg.content}
               isOwn={msg.sender === address}
               index={i}
+              senderAddress={msg.sender}
             />
           ))}
         </div>
 
-        {/* error */}
         {sendError && (
           <div className="border-t-2 border-[var(--danger)] bg-[var(--bg-surface)] px-4 py-2 font-mono text-xs text-[var(--danger)]">
             {sendError}
           </div>
         )}
 
-        {/* composer */}
         <div className="border-t-2 border-[var(--border-strong)] bg-[var(--bg-surface)] p-3 sm:p-4">
           <form
             onSubmit={(e) => {
