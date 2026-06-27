@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AtSign, Check, Loader2, X, AlertCircle } from 'lucide-react';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { useProfile } from '@/hooks/useProfile';
+import { Avatar } from '@/components/ui/Avatar';
 import { validateUsername, checkUsernameAvailable, registerUser } from '@/lib/registry';
 
 const DISMISS_KEY = 'dmessage:username-prompt-dismissed';
@@ -35,8 +36,10 @@ export function UsernamePrompt() {
   // Restore dismissal (per session) so we don't nag.
   useEffect(() => {
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDismissed(sessionStorage.getItem(DISMISS_KEY) === '1');
     } catch {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDismissed(false);
     }
   }, []);
@@ -50,14 +53,17 @@ export function UsernamePrompt() {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!value) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAvail({ kind: 'idle' });
       return;
     }
     const v = validateUsername(value);
     if (!v.ok) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAvail({ kind: 'invalid', reason: v.reason ?? 'Invalid' });
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAvail({ kind: 'checking' });
     debounceRef.current = setTimeout(async () => {
       const res = await checkUsernameAvailable(value);
@@ -131,15 +137,20 @@ export function UsernamePrompt() {
               <X className="h-4 w-4" strokeWidth={2} />
             </button>
 
-            <div className="mb-1 flex items-center gap-2 text-[var(--accent)]">
-              <AtSign className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-              <span className="font-mono text-[10px] uppercase tracking-[0.25em]">
-                Claim your handle
-              </span>
+            <div className="mb-1 flex items-center gap-3">
+              <Avatar seed={address ?? 'anon'} size={44} />
+              <div>
+                <div className="flex items-center gap-2 text-[var(--accent)]">
+                  <AtSign className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.25em]">
+                    Claim your handle
+                  </span>
+                </div>
+                <h2 className="font-mono text-xl font-black tracking-tight text-white">
+                  Pick a username
+                </h2>
+              </div>
             </div>
-            <h2 className="font-mono text-xl font-black tracking-tight text-white">
-              Pick a username
-            </h2>
             <p className="mt-2 font-mono text-xs leading-relaxed text-[var(--text-muted)]">
               So people see a name instead of a wallet address. Letters, numbers and underscores —
               not just digits.

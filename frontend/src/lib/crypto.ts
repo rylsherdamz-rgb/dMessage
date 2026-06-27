@@ -27,7 +27,7 @@ export async function encrypt(
   crypto.getRandomValues(iv);
   const encoded = new TextEncoder().encode(plaintext);
   const buf = Uint8Array.from(encoded);
-  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, buf as any);
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, buf as BufferSource);
   return { ciphertext, iv };
 }
 
@@ -39,7 +39,7 @@ export async function decrypt(
   const src = data instanceof Uint8Array ? data : new Uint8Array(data);
   const buf = Uint8Array.from(src);
   const params = { name: 'AES-GCM' as const, iv };
-  const plain = await (crypto.subtle.decrypt as any)(params, key, buf);
+  const plain = await crypto.subtle.decrypt(params, key, buf as BufferSource);
   return new TextDecoder().decode(plain);
 }
 
@@ -53,5 +53,5 @@ export async function exportPublicKey(key: CryptoKey): Promise<string> {
 
 export async function importPublicKey(b64: string): Promise<CryptoKey> {
   const raw = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-  return crypto.subtle.importKey('spki', raw as any, { name: 'ECDH', namedCurve: 'P-256' }, true, []);
+  return crypto.subtle.importKey('spki', raw as BufferSource, { name: 'ECDH', namedCurve: 'P-256' }, true, []);
 }

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Nav } from '@/components/layout/Nav';
 import { ConnectGate } from '@/components/layout/ConnectGate';
+import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { useProfile } from '@/hooks/useProfile';
@@ -36,11 +37,15 @@ export default function SettingsPage() {
   const [pubKey, setPubKey] = useState<string | null>(null);
 
   useEffect(() => {
+    // Client-only: read persisted key state after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setKeyPresent(hasLocalKey());
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPubKey(getStoredPublicKeyB64());
   }, []);
 
   useEffect(() => {
+    // Seed the editable field from the on-chain profile once it loads.
     if (profile?.username) setUsername(profile.username);
   }, [profile?.username]);
 
@@ -121,6 +126,17 @@ export default function SettingsPage() {
               </div>
             ) : (
               <>
+                <div className="mb-5 flex items-center gap-4">
+                  <Avatar seed={address ?? 'anon'} size={56} online />
+                  <div className="min-w-0">
+                    <p className="truncate font-mono text-sm font-black tracking-tight text-white">
+                      {profile?.username ? `@${profile.username}` : 'Unregistered'}
+                    </p>
+                    <p className="truncate font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                      {truncated}
+                    </p>
+                  </div>
+                </div>
                 <label className="mb-2 block font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">
                   Username
                 </label>

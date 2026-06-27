@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { ArchiveRestore, Inbox, MessageSquareText } from 'lucide-react';
+import { ArchiveRestore, Inbox } from 'lucide-react';
 import { Nav } from '@/components/layout/Nav';
 import { ConnectGate } from '@/components/layout/ConnectGate';
+import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { useConversations } from '@/hooks/useConversations';
@@ -62,7 +63,7 @@ export default function ArchivePage() {
                 href={`/conversation/${conv.conversationId}`}
                 className="flex items-center gap-3 font-mono text-sm font-bold tracking-tight transition-colors hover:text-[var(--accent)]"
               >
-                <MessageSquareText className="h-4 w-4 text-[var(--text-muted)]" strokeWidth={2} aria-hidden />
+                <Avatar seed={conv.peerAddress} size={36} />
                 {conv.peerAddress.slice(0, 8)}…
                 <span className="text-[var(--text-muted)]">{conv.peerAddress.slice(-6)}</span>
               </Link>

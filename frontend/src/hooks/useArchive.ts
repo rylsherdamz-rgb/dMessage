@@ -14,6 +14,7 @@ export function useArchive() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setArchived(JSON.parse(raw));
     } catch {
       /* ignore malformed storage */
