@@ -1,0 +1,111 @@
+name: Contracts
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'contracts/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/contracts.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'contracts/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+      - run: cargo test --release --workspace
+        working-directory: contracts
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - run: cargo fmt --check
+        working-directory: contracts
+      - run: cargo clippy --release --workspace -- -D warnings
+        working-directory: contracts
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+      - uses: stellar/stellar-cli@v27.0.0
+      - run: |
+          for dir in user_registry social_graph messages; do
+            (cd "contracts/$dir" && stellar contract build)
+          done
+      - name: Compute WASM hashes
+        run: |
+          echo "## WASM Build Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo '| Contract | Size | SHA256 |' >> $GITHUB_STEP_SUMMARY
+          echo '|---|---|---|' >> $GITHUB_STEP_SUMMARY
+          for wasm in contracts/target/wasm32v1-none/release/*.wasm; do
+            name=$(basename "$wasm" .wasm)
+            size=$(stat -c%s "$wasm")
+            hash=$(sha256sum "$wasm" | cut -d' ' -f1)
+            echo "| $name | ${size}B | \`$hash\` |" >> $GITHUB_STEP_SUMMARY
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wasm-artifacts
+          path: contracts/target/wasm32v1-none/release/*.wasm
+
+  deploy-testnet:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    needs: [build]
+    environment: testnet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+      - uses: stellar/stellar-cli@v27.0.0
+      - uses: actions/download-artifact@v4
+        with:
+          name: wasm-artifacts
+          path: contracts/target/wasm32v1-none/release/
+      - name: Deploy contracts
+        run: |
+          mkdir -p deploy-out
+          CONTRACTS="user_registry social_graph messages"
+          for contract in $CONTRACTS; do
+            WASM="contracts/target/wasm32v1-none/release/$contract.wasm"
+            HASH=$(sha256sum "$WASM" | cut -d' ' -f1)
+            echo "Deploying $contract (SHA256: $HASH)..."
+            ID=$(stellar contract deploy \
+              --wasm "$WASM" \
+              --source-account dmessage-deployer \
+              --network testnet 2>&1 | grep -E '^C[A-Z0-9]{55}$' | head -1)
+            echo "$contract=$ID" >> deploy-out/contracts.env
+            echo "  → $ID"
+          done
+      - name: Save deployment manifest
+        run: |
+          {
+            echo "deployed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "git_commit=${{ github.sha }}"
+            echo "workflow=${{ github.run_id }}"
+          } >> deploy-out/manifest.txt
+          cat deploy-out/contracts.env
+          cat deploy-out/manifest.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deployment-manifest
+          path: deploy-out/

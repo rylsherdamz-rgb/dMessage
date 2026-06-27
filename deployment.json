@@ -1,0 +1,29 @@
+{
+  "network": "testnet",
+  "deployed_at": "2026-06-27T11:25:00Z",
+  "git_commit": "3ec3073d4c11cd9138e8f540f7fbc4c18d970d3a",
+  "contracts": {
+    "user_registry": {
+      "id": "CAQ54Z6ARYWHSGQK4ZWPVLS3SEEDCCRTL4WJLEZAYFPMX4MPA5A77GQO",
+      "wasm_sha256": "000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964",
+      "src": "contracts/user_registry/src/lib.rs"
+    },
+    "social_graph": {
+      "id": "CAIA32SCGTA2UTDWS7TYPSARBT2JJJ7JYR4EZ3ED5K6LNXI2LP645JKD",
+      "wasm_sha256": "2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c",
+      "src": "contracts/social_graph/src/lib.rs"
+    },
+    "messages": {
+      "id": "CAZMMKONKQCDCCOYPCVCXUBJYF6AXECU5XIZNOCFGVGAHY7764DKFEL2",
+      "wasm_sha256": "8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e",
+      "src": "contracts/messages/src/lib.rs"
+    }
+  },
+  "build": {
+    "command": "stellar contract build",
+    "target": "wasm32v1-none",
+    "soroban_sdk": "21.7.7",
+    "stellar_cli": "27.0.0",
+    "rustc": "1.96.0"
+  }
+}

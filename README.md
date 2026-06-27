@@ -53,32 +53,39 @@ To create a truly private, user-owned messaging network where:
 | **SocialGraph** | Creates deterministic conversation IDs (SHA-256 of sorted addresses), maintains per-user conversation lists |
 | **MessageContract** | Stores message hashes with ordering, supports paginated retrieval per conversation |
 
-## Deployed Contract Details (Testnet)
+## Deployed Contracts (Testnet)
 
-| Contract | Address | Explorer | Deploy Tx |
-|----------|---------|----------|-----------|
-| UserRegistry | `CCYE3GXN7X4HIDNIEZCPE5WFWELS3SKSLBSHSENBPLNSWVSWFSOMRLIS` | [stellar.expert](https://stellar.expert/explorer/testnet/contract/CCYE3GXN7X4HIDNIEZCPE5WFWELS3SKSLBSHSENBPLNSWVSWFSOMRLIS) | [tx](https://stellar.expert/explorer/testnet/tx/891a8d7ed79730df7029de2ef8fab8f88115fdfefb921b548bde1dc20eca7794) |
-| SocialGraph | `CBQJMPSMYNURVLSLG6FPILRCHDSSBB3EAFFOWWPRMJ4FTUR5H4XWUNL6` | [stellar.expert](https://stellar.expert/explorer/testnet/contract/CBQJMPSMYNURVLSLG6FPILRCHDSSBB3EAFFOWWPRMJ4FTUR5H4XWUNL6) | [tx](https://stellar.expert/explorer/testnet/tx/2a3191c2e3382bc893c25c15c9d8b6a81fd078db6184beb1cab496fb770a44cb) |
-| MessageContract | `CAFAAKQR56MO63IFCI7GSITV6J3FS47DGHJHQBTVITHIB57IPQ74LZB7` | [stellar.expert](https://stellar.expert/explorer/testnet/contract/CAFAAKQR56MO63IFCI7GSITV6J3FS47DGHJHQBTVITHIB57IPQ74LZB7) | [tx](https://stellar.expert/explorer/testnet/tx/59a7b9746d069b9f62872f8337b3657d9baab4f8632eb75eefb95475f8d4a8d1) |
+![UserRegistry deployment](images/user_registry.png)
+![SocialGraph deployment](images/social_graph.png)
+![Messages deployment](images/messages.png)
+
+| Contract | Address | WASM Hash (SHA256) |
+|----------|---------|-------------------|
+| UserRegistry | `CAQ54Z6ARYWHSGQK4ZWPVLS3SEEDCCRTL4WJLEZAYFPMX4MPA5A77GQO` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` |
+| SocialGraph | `CAIA32SCGTA2UTDWS7TYPSARBT2JJJ7JYR4EZ3ED5K6LNXI2LP645JKD` | `2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c` |
+| MessageContract | `CAZMMKONKQCDCCOYPCVCXUBJYF6AXECU5XIZNOCFGVGAHY7764DKFEL2` | `8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e` |
+
+Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAQ54Z6ARYWHSGQK4ZWPVLS3SEEDCCRTL4WJLEZAYFPMX4MPA5A77GQO) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CAIA32SCGTA2UTDWS7TYPSARBT2JJJ7JYR4EZ3ED5K6LNXI2LP645JKD) · [Messages](https://stellar.expert/explorer/testnet/contract/CAZMMKONKQCDCCOYPCVCXUBJYF6AXECU5XIZNOCFGVGAHY7764DKFEL2)
 
 ### Source Verification
 
-Contracts are verifiable on Stellar Expert. To verify source code:
+Anyone can verify these contracts by rebuilding from source:
 
-1. Navigate to the contract's Explorer page (linked above)
-2. Click **Verify Contract**
-3. Upload the source file from `contracts/<name>/src/lib.rs`
-4. Upload the corresponding `contracts/<name>/Cargo.toml`
-5. Select SDK version: **soroban-sdk 21.7.7**
-6. The platform will compare the build output against the deployed WASM hash
+```bash
+# 1. Clone the repo at the deployment commit
+git checkout 3ec3073
 
-**WASM Hashes (for CI/CD verification):**
+# 2. Build
+stellar contract build --contract-dir contracts/user_registry
+stellar contract build --contract-dir contracts/social_graph
+stellar contract build --contract-dir contracts/messages
 
-| Contract | WASM Hash (SHA256) |
-|----------|-------------------|
-| UserRegistry | `2a79c0977128ca22decb571e77fcfd268ea5e255ee5c987c36dff485a496779d` |
-| SocialGraph | `77c424e3bbcee9f606264aa53c8af43a86b713790f22b7b9ed4d136b235a0c0e` |
-| MessageContract | `5585e7757072a2f90e07dd117dee06bed83ad10d01b4563b2505a97f377317af` |
+# 3. Compare SHA256 hashes
+sha256sum contracts/target/wasm32v1-none/release/*.wasm
+# The output should match the WASM hashes in the table above
+```
+
+The deployment manifest with full metadata is at [`deployment.json`](deployment.json).
 
 *Mainnet addresses to be announced post-audit.*
 
