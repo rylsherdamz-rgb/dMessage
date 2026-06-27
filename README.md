@@ -8,6 +8,8 @@ Big tech companies treat your private conversations as their free data mine. Eve
 
 Your data is not their product. Your words are not their training set.
 
+**Live deployment:** [dmessage.vercel.app](https://dmessage.vercel.app)
+
 ## How It Works
 
 Messages are encrypted on your device using X25519 ECDH key exchange + AES-GCM-256 — the same standards militaries and security professionals trust. The encrypted blobs live on IPFS, not on a corporate server. Only cryptographic hashes and metadata touch the Stellar Soroban blockchain, which no single entity controls.
