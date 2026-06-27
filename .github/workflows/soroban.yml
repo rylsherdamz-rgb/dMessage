@@ -1,0 +1,54 @@
+name: Soroban Contracts
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'contracts/**'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'contracts/**'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        contract:
+          - user_registry
+          - social_graph
+          - messages
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/${{ matrix.contract }}/target
+          key: ${{ runner.os }}-cargo-${{ matrix.contract }}-${{ hashFiles('contracts/**/Cargo.toml') }}
+
+      - name: Build ${{ matrix.contract }}
+        run: cargo build --release --target wasm32-unknown-unknown
+        working-directory: contracts/${{ matrix.contract }}
+
+      - name: Run tests
+        run: cargo test --release
+        working-directory: contracts/${{ matrix.contract }}
+
+      - name: Verify WASM output
+        run: |
+          ls -lh target/wasm32-unknown-unknown/release/*.wasm
+        working-directory: contracts/${{ matrix.contract }}
