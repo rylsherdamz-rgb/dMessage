@@ -24,7 +24,9 @@ export const arg = {
 
 /**
  * Read-only contract call via transaction simulation.
- * Fetches the real account (sequence number) for a valid simulation.
+ * Tries to fetch the real account for a valid sequence number;
+ * falls back to a placeholder (sequence '0') if the account hasn't
+ * been funded on testnet yet or the RPC doesn't support it.
  * Returns the decoded native value, or `null` for void/None results.
  */
 export async function readContract<T = unknown>(
@@ -35,7 +37,13 @@ export async function readContract<T = unknown>(
 ): Promise<T | null> {
   const server = getSorobanServer();
   const contract = new Contract(contractId);
-  const source = await server.getAccount(sourceAddress);
+
+  let source: Account;
+  try {
+    source = await server.getAccount(sourceAddress);
+  } catch {
+    source = new Account(sourceAddress, '0');
+  }
 
   const tx = new TransactionBuilder(source, {
     fee: '100',
