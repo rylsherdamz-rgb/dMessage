@@ -13,7 +13,11 @@ frontend/.env.development.local
 frontend/.env.production.local
 frontend/.vercel
 frontend/*.tsbuildinfo
-frontend/next-env.d.ts
+frontend/next-env.d.ts/
+contracts/node_modules
+
+tests/node_modules
+
 
 # OS
 .DS_Store
