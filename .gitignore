@@ -16,7 +16,7 @@ frontend/*.tsbuildinfo
 frontend/next-env.d.ts/
 contracts/node_modules
 
-tests/node_modules
+tests/node_modules/
 
 
 # OS
