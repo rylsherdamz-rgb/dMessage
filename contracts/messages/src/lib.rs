@@ -31,7 +31,7 @@ impl MessageContract {
             .unwrap_or_else(|| Vec::new(&env));
 
         inbox.push_back(InboxMessage {
-            sender,
+            sender: sender.clone(),
             content,
             timestamp,
             read: false,
@@ -111,8 +111,8 @@ extern crate std;
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::testutils::{Address as _, Ledger as _};
-    use soroban_sdk::{Bytes, Env};
+    use soroban_sdk::testutils::{Address as _, Events as _};
+    use soroban_sdk::{Bytes, Env, TryFromVal};
 
     fn setup_env() -> (Env, MessageContractClient<'static>) {
         let env = Env::default();
@@ -123,7 +123,7 @@ mod test {
     }
 
     fn make_content(env: &Env, val: &[u8]) -> Bytes {
-        Bytes::from_array(env, val)
+        Bytes::from_slice(env, val)
     }
 
     #[test]
@@ -247,9 +247,12 @@ mod test {
 
         let events = env.events().all();
         assert!(events.len() > 0, "should have fired an event");
-        let (topics, _data) = events.get(0).unwrap();
-        assert_eq!(topics.get(1).unwrap(), alice, "event topic 1 should be sender");
-        assert_eq!(topics.get(2).unwrap(), bob, "event topic 2 should be recipient");
+        let (_contract, topics, _data) = events.get(0).unwrap();
+        assert_eq!(topics.len(), 3, "event should have 3 topics");
+        let sender_topic = Address::try_from_val(&env, &topics.get(1).unwrap()).unwrap();
+        let recipient_topic = Address::try_from_val(&env, &topics.get(2).unwrap()).unwrap();
+        assert_eq!(sender_topic, alice, "event topic 1 should be sender");
+        assert_eq!(recipient_topic, bob, "event topic 2 should be recipient");
     }
 
     #[test]
