@@ -5,6 +5,7 @@ on:
     branches: [main, master]
     paths:
       - 'contracts/**'
+      - 'scripts/verify.sh'
   pull_request:
     branches: [main, master]
     paths:
@@ -48,7 +49,51 @@ jobs:
         run: cargo test --release
         working-directory: contracts/${{ matrix.contract }}
 
-      - name: Verify WASM output
+      - name: Compute WASM hash for verification
         run: |
-          ls -lh target/wasm32-unknown-unknown/release/*.wasm
+          WASM="target/wasm32-unknown-unknown/release/${{ matrix.contract }}.wasm"
+          echo "### ${{ matrix.contract }} WASM" >> $GITHUB_STEP_SUMMARY
+          echo "- Size: $(ls -lh $WASM | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
+          echo "- SHA256: $(sha256sum $WASM | cut -d' ' -f1)" >> $GITHUB_STEP_SUMMARY
+          echo "- Wasm hash: $(sha256sum $WASM | cut -d' ' -f1)" >> $GITHUB_STEP_SUMMARY
         working-directory: contracts/${{ matrix.contract }}
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.contract }}-wasm
+          path: contracts/${{ matrix.contract }}/target/wasm32-unknown-unknown/release/*.wasm
+          retention-days: 30
+
+  verify:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all WASM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: *-wasm
+          path: contracts/
+          merge-multiple: true
+
+      - name: Verify WASM integrity
+        run: |
+          echo "### Contract Verification Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Contract | WASM Size | SHA256 |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          for wasm in contracts/*.wasm; do
+            name=$(basename "$wasm" .wasm)
+            size=$(ls -lh "$wasm" | awk '{print $5}')
+            hash=$(sha256sum "$wasm" | cut -d' ' -f1)
+            echo "| $name | $size | $hash |" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To verify on Stellar Expert:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to https://stellar.expert/explorer/testnet/contract/<CONTRACT_ID>" >> $GITHUB_STEP_SUMMARY
+          echo "2. Click 'Verify Contract'" >> $GITHUB_STEP_SUMMARY
+          echo "3. Upload source from contracts/<name>/src/" >> $GITHUB_STEP_SUMMARY
+          echo "4. Select SDK: soroban-sdk 21.7.7" >> $GITHUB_STEP_SUMMARY

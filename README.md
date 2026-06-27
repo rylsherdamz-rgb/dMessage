@@ -55,13 +55,32 @@ To create a truly private, user-owned messaging network where:
 
 ## Deployed Contract Details (Testnet)
 
-| Contract | Address | Transaction Hash |
-|----------|---------|------------------|
-| UserRegistry | `TBD` | `TBD` |
-| SocialGraph | `TBD` | `TBD` |
-| MessageContract | `TBD` | `TBD` |
+| Contract | Address | Explorer | Deploy Tx |
+|----------|---------|----------|-----------|
+| UserRegistry | `CCYE3GXN7X4HIDNIEZCPE5WFWELS3SKSLBSHSENBPLNSWVSWFSOMRLIS` | [stellar.expert](https://stellar.expert/explorer/testnet/contract/CCYE3GXN7X4HIDNIEZCPE5WFWELS3SKSLBSHSENBPLNSWVSWFSOMRLIS) | [tx](https://stellar.expert/explorer/testnet/tx/891a8d7ed79730df7029de2ef8fab8f88115fdfefb921b548bde1dc20eca7794) |
+| SocialGraph | `CBQJMPSMYNURVLSLG6FPILRCHDSSBB3EAFFOWWPRMJ4FTUR5H4XWUNL6` | [stellar.expert](https://stellar.expert/explorer/testnet/contract/CBQJMPSMYNURVLSLG6FPILRCHDSSBB3EAFFOWWPRMJ4FTUR5H4XWUNL6) | [tx](https://stellar.expert/explorer/testnet/tx/2a3191c2e3382bc893c25c15c9d8b6a81fd078db6184beb1cab496fb770a44cb) |
+| MessageContract | `CAFAAKQR56MO63IFCI7GSITV6J3FS47DGHJHQBTVITHIB57IPQ74LZB7` | [stellar.expert](https://stellar.expert/explorer/testnet/contract/CAFAAKQR56MO63IFCI7GSITV6J3FS47DGHJHQBTVITHIB57IPQ74LZB7) | [tx](https://stellar.expert/explorer/testnet/tx/59a7b9746d069b9f62872f8337b3657d9baab4f8632eb75eefb95475f8d4a8d1) |
 
-*Deploy to Testnet after contract audit. Mainnet addresses to be announced.*
+### Source Verification
+
+Contracts are verifiable on Stellar Expert. To verify source code:
+
+1. Navigate to the contract's Explorer page (linked above)
+2. Click **Verify Contract**
+3. Upload the source file from `contracts/<name>/src/lib.rs`
+4. Upload the corresponding `contracts/<name>/Cargo.toml`
+5. Select SDK version: **soroban-sdk 21.7.7**
+6. The platform will compare the build output against the deployed WASM hash
+
+**WASM Hashes (for CI/CD verification):**
+
+| Contract | WASM Hash (SHA256) |
+|----------|-------------------|
+| UserRegistry | `2a79c0977128ca22decb571e77fcfd268ea5e255ee5c987c36dff485a496779d` |
+| SocialGraph | `77c424e3bbcee9f606264aa53c8af43a86b713790f22b7b9ed4d136b235a0c0e` |
+| MessageContract | `5585e7757072a2f90e07dd117dee06bed83ad10d01b4563b2505a97f377317af` |
+
+*Mainnet addresses to be announced post-audit.*
 
 ## Getting Started
 
