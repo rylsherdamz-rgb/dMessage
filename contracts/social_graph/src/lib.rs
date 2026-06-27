@@ -1,5 +1,6 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Bytes, BytesN, Env, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, BytesN, Env, Vec};
+use soroban_sdk::xdr::ToXdr;
 
 #[derive(Clone)]
 #[contracttype]
@@ -23,30 +24,37 @@ pub struct SocialGraph;
 
 #[contractimpl]
 impl SocialGraph {
-    pub fn ensure_conversation(env: Env, user_a: Address, user_b: Address) -> BytesN<32> {
+    pub fn ensure_conversation(
+        env: Env,
+        caller: Address,
+        user_a: Address,
+        user_b: Address,
+    ) -> BytesN<32> {
+        caller.require_auth();
+
         let (addr1, addr2) = if user_a < user_b {
             (user_a.clone(), user_b.clone())
         } else {
             (user_b.clone(), user_a.clone())
         };
 
-        let xdr_a = addr1.to_xdr(&env);
-        let xdr_b = addr2.to_xdr(&env);
-        let mut preimage = Bytes::new(&env);
+        let xdr_a = addr1.clone().to_xdr(&env);
+        let xdr_b = addr2.clone().to_xdr(&env);
+        let mut preimage = soroban_sdk::Bytes::new(&env);
         for b in xdr_a.iter() {
-            preimage.push_back(*b);
+            preimage.push_back(b);
         }
         for b in xdr_b.iter() {
-            preimage.push_back(*b);
+            preimage.push_back(b);
         }
-        let conversation_id = env.crypto().sha256(&preimage);
+        let conversation_id: BytesN<32> = env.crypto().sha256(&preimage).into();
 
         let timestamp = env.ledger().timestamp();
 
         if !env
             .storage()
             .persistent()
-            .has::<BytesN<32>, Conversation>(&conversation_id)
+            .has::<BytesN<32>>(&conversation_id)
         {
             env.storage()
                 .persistent()
@@ -93,7 +101,7 @@ impl SocialGraph {
         let exists = convs.iter().any(|c| c.conversation_id == *conv_id);
         if !exists {
             convs.push_back(ConversationRef {
-                conversation_id: *conv_id,
+                conversation_id: conv_id.clone(),
                 peer_address: peer.clone(),
                 last_updated: timestamp,
             });

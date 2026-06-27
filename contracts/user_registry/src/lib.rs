@@ -18,11 +18,12 @@ pub struct UserRegistry;
 impl UserRegistry {
     pub fn register_user(
         env: Env,
+        caller: Address,
         username: String,
         encryption_pubkey: Bytes,
         metadata_ipfs: Option<BytesN<32>>,
     ) {
-        let addr = env.caller();
+        caller.require_auth();
         let timestamp = env.ledger().timestamp();
         let profile = UserProfile {
             username,
@@ -31,7 +32,7 @@ impl UserRegistry {
             created_at: timestamp,
             updated_at: timestamp,
         };
-        env.storage().persistent().set(&addr, &profile);
+        env.storage().persistent().set(&caller, &profile);
     }
 
     pub fn get_user(env: Env, addr: Address) -> Option<UserProfile> {

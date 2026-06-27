@@ -1,37 +1,96 @@
 @import "tailwindcss";
 
 :root {
-  --background: oklch(8% 0.02 270);
-  --foreground: oklch(95% 0 0);
-  --color-surface: oklch(14% 0.02 270);
-  --color-accent: oklch(68% 0.21 250);
-  --color-accent-dim: oklch(55% 0.18 250);
-  --color-text: oklch(95% 0 0);
-  --color-text-muted: oklch(60% 0 0);
+  --bg: oklch(0% 0 0);
+  --bg-surface: oklch(12% 0 0);
+  --bg-elevated: oklch(18% 0 0);
+  --accent: #00ff88;
+  --accent-dim: #00cc6a;
+  --text: oklch(98% 0 0);
+  --text-muted: oklch(50% 0 0);
+  --border: oklch(25% 0 0);
+  --danger: #ff3355;
 
-  --text-base: clamp(1rem, 0.92rem + 0.4vw, 1.125rem);
-  --text-hero: clamp(3rem, 1rem + 7vw, 8rem);
-  --text-lg: clamp(1.25rem, 1rem + 1.5vw, 2rem);
-
-  --space-section: clamp(4rem, 3rem + 5vw, 10rem);
-
-  --duration-fast: 150ms;
-  --duration-normal: 300ms;
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-
-  --radius: 1rem;
-  --radius-sm: 0.5rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.5rem;
+  --text-xl: 2rem;
+  --text-hero: clamp(2.5rem, 1rem + 6vw, 6rem);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: "Geist Mono", "SF Mono", ui-monospace, monospace;
+  --font-mono: "Geist Mono", "SF Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--color-text);
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+.neobrutalist {
+  border: 3px solid var(--border);
+  box-shadow: 6px 6px 0 0 var(--border);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.neobrutalist:hover {
+  box-shadow: 3px 3px 0 0 var(--border);
+  transform: translate(3px, 3px);
+}
+
+.neobrutalist:active {
+  box-shadow: none;
+  transform: translate(6px, 6px);
+}
+
+.neobrutalist-accent {
+  border: 3px solid var(--accent);
+  box-shadow: 6px 6px 0 0 var(--accent);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.neobrutalist-accent:hover {
+  box-shadow: 3px 3px 0 0 var(--accent);
+  transform: translate(3px, 3px);
+}
+
+.neobrutalist-accent:active {
+  box-shadow: none;
+  transform: translate(6px, 6px);
+}
+
+.neobrutalist-input {
+  border: 3px solid var(--border);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.neobrutalist-input:focus {
+  border-color: var(--accent);
 }

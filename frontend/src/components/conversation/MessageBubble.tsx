@@ -73,31 +73,39 @@ export function MessageBubble({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, delay: index * 0.03 }}
-      className={`max-w-[75%] rounded-[var(--radius)] px-4 py-3 ${
+      transition={{ duration: 0.15, delay: index * 0.02 }}
+      className={`max-w-[70%] ${
         isOwn
-          ? 'self-end bg-[var(--color-accent)] text-white'
-          : 'self-start bg-[var(--color-surface)] border border-white/10'
+          ? 'self-end'
+          : 'self-start'
       }`}
     >
       {!isOwn && (
-        <p className="mb-1 text-xs text-[var(--color-text-muted)]">
-          {sender.slice(0, 8)}…
+        <p className="mb-1.5 ml-1 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+          {sender.slice(0, 6)}...
         </p>
       )}
-      {decrypting ? (
-        <p className="text-sm italic opacity-60">Decrypting…</p>
-      ) : contentType === 2 ? (
-        content ? (
-          <img src={content} alt="Shared media" className="max-w-full rounded-[var(--radius-sm)]" />
+      <div
+        className={`border-3 px-5 py-3 ${
+          isOwn
+            ? 'border-[var(--accent)] bg-black text-[var(--accent)]'
+            : 'border-[var(--border)] bg-[var(--bg-surface)] text-white'
+        }`}
+      >
+        {decrypting ? (
+          <p className="font-mono text-sm italic opacity-40">decrypting...</p>
+        ) : contentType === 2 ? (
+          content ? (
+            <img src={content} alt="media" className="max-w-full" />
+          ) : (
+            <p className="font-mono text-sm italic opacity-40">loading...</p>
+          )
         ) : (
-          <p className="text-sm italic opacity-60">Loading media…</p>
-        )
-      ) : (
-        <p className="text-sm">{content ?? ''}</p>
-      )}
-      <p className="mt-1 text-right text-[10px] opacity-50">
-        {new Date(timestamp * 1000).toLocaleTimeString()}
+          <p className="font-mono text-sm leading-relaxed">{content ?? ''}</p>
+        )}
+      </div>
+      <p className={`mt-1.5 font-mono text-[10px] text-[var(--text-muted)] ${isOwn ? 'text-right' : 'text-left'}`}>
+        {new Date(timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </p>
     </motion.div>
   );

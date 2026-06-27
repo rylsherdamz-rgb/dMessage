@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useMessages } from '@/hooks/useMessages';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -8,10 +8,8 @@ import { MessageBubble } from '@/components/conversation/MessageBubble';
 import { Spinner } from '@/components/ui/Spinner';
 import { uploadToIPFS } from '@/lib/ipfs';
 import { getSorobanServer, CONTRACT_IDS, NETWORK_PASSPHRASE } from '@/lib/stellar';
-import { hexDecode, hexEncode } from '@/lib/hex';
+import { hexDecode } from '@/lib/hex';
 import SorobanClient from 'stellar-sdk';
-import { motion } from 'framer-motion';
-import Link from 'next/link';
 
 function bytesScVal(bytes: Uint8Array) {
   return SorobanClient.xdr.ScVal.scvBytes(bytes);
@@ -26,6 +24,7 @@ function stringTo32Bytes(s: string): Uint8Array {
 
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { address, signTransaction } = useWallet();
   const { data: messages, isLoading } = useMessages(id);
   const [input, setInput] = useState('');
@@ -78,27 +77,32 @@ export default function ConversationPage() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col">
-      <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard"
-            className="text-sm text-[var(--color-text-muted)] transition-colors hover:text-white"
+      <header className="flex items-center justify-between border-b-3 border-[var(--border)] px-8 py-5">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="neobrutalist bg-[var(--bg-surface)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
           >
-            &larr; Back
-          </Link>
-          <h2 className="font-mono text-lg font-semibold">{id.slice(0, 16)}…</h2>
+            &larr;
+          </button>
+          <h2 className="font-mono text-sm font-bold tracking-tight">
+            {id.slice(0, 8)}...
+            <span className="text-[var(--text-muted)]">{id.slice(-6)}</span>
+          </h2>
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex flex-1 flex-col gap-3 overflow-y-auto p-6">
+      <div ref={scrollRef} className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
         {isLoading && (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-16">
             <Spinner />
           </div>
         )}
         {messages?.length === 0 && !isLoading && (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-[var(--color-text-muted)]">No messages yet. Start the conversation!</p>
+            <p className="font-mono text-xs uppercase tracking-[0.15em] text-[var(--text-muted)]">
+              No messages yet
+            </p>
           </div>
         )}
         {messages?.map((msg, i) => (
@@ -114,30 +118,25 @@ export default function ConversationPage() {
         ))}
       </div>
 
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t-3 border-[var(--border)] p-4">
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
+          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
           className="flex gap-3"
         >
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message…"
+            placeholder="Type a message..."
             disabled={sending}
-            className="flex-1 rounded-[var(--radius-sm)] bg-[var(--color-surface)] px-4 py-3 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-[var(--color-accent)] disabled:opacity-50"
+            className="neobrutalist-input flex-1 bg-[var(--bg-surface)] px-5 py-4 font-mono text-sm text-white placeholder-[var(--text-muted)] disabled:opacity-40"
           />
-          <motion.button
+          <button
             type="submit"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
             disabled={sending || !input.trim()}
-            className="rounded-[var(--radius-sm)] bg-[var(--color-accent)] px-6 py-3 font-semibold text-white transition-colors hover:brightness-110 disabled:opacity-50"
+            className="neobrutalist-accent bg-black px-8 py-4 font-mono text-xs font-bold uppercase tracking-widest text-[var(--accent)] disabled:opacity-30"
           >
-            {sending ? <Spinner className="h-4 w-4" /> : 'Send'}
-          </motion.button>
+            {sending ? '...' : 'Send'}
+          </button>
         </form>
       </div>
     </div>
