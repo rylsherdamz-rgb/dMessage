@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@creit.tech/stellar-wallets-kit": "^2.4.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@remotion/player": "^4.0.484",
