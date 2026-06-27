@@ -13,7 +13,7 @@ build:
 build-wasm:
 	@for c in $(CONTRACTS); do \
 		echo "Building $$c (WASM)..."; \
-		cd contracts/$$c && cargo build --release --target wasm32-unknown-unknown 2>&1 | tail -1; \
+		cargo build --release --target wasm32-unknown-unknown --manifest-path contracts/$$c/Cargo.toml 2>&1 | tail -1; \
 	done
 	@echo "\nWASM sizes:"; \
 	for c in $(CONTRACTS); do \
