@@ -2,13 +2,19 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
-  getAddress,
-  isConnected,
-  requestAccess,
-  signTransaction as freighterSign,
-  WatchWalletChanges,
-} from '@stellar/freighter-api';
+  StellarWalletsKit,
+  Networks,
+  KitEventType,
+} from '@creit.tech/stellar-wallets-kit';
+import { FreighterModule } from '@creit.tech/stellar-wallets-kit/modules/freighter';
+import { xBullModule } from '@creit.tech/stellar-wallets-kit/modules/xbull';
+import { LobstrModule } from '@creit.tech/stellar-wallets-kit/modules/lobstr';
+import { HanaModule } from '@creit.tech/stellar-wallets-kit/modules/hana';
 import type { ReactNode } from 'react';
+
+const NETWORK = process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet'
+  ? Networks.PUBLIC
+  : Networks.TESTNET;
 
 interface WalletContext {
   address: string | null;
@@ -33,54 +39,68 @@ const Ctx = createContext<WalletContext>({
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const watcher = useRef<WatchWalletChanges | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-  const sync = useCallback(async () => {
-    try {
-      const { isConnected: connected } = await isConnected();
-      if (connected) {
-        const { address: addr } = await getAddress();
-        setAddress(addr);
-      } else {
-        setAddress(null);
-      }
-    } catch {
-      setAddress(null);
-    }
-  }, []);
-
-  // Initial check + watch wallet changes
   useEffect(() => {
-    sync();
-    const w = new WatchWalletChanges(3000);
-    watcher.current = w;
-    w.watch(({ address: addr, error }) => {
-      if (error) {
-        setAddress(null);
-      } else {
-        setAddress(addr || null);
-      }
+    StellarWalletsKit.init({
+      modules: [
+        new FreighterModule(),
+        new xBullModule(),
+        new LobstrModule(),
+        new HanaModule(),
+      ],
+      network: NETWORK,
     });
-    return () => w.stop();
-  }, [sync]);
+
+    const sub = StellarWalletsKit.on(KitEventType.STATE_UPDATED, (e) => {
+      const addr = e.payload.address ?? null;
+      setAddress(addr);
+    });
+
+    const rehydrate = async () => {
+      try {
+        const { address: addr } = await StellarWalletsKit.getAddress();
+        if (addr) { setAddress(addr); return; }
+      } catch { /* not in memory */ }
+
+      try {
+        const freighter = new FreighterModule();
+        const { address: addr } = await freighter.getAddress({ skipRequestAccess: true });
+        if (addr) {
+          StellarWalletsKit.setWallet('freighter');
+          setAddress(addr);
+        }
+      } catch {
+        setAddress(null);
+      }
+    };
+    rehydrate();
+
+    cleanupRef.current = () => { sub(); };
+
+    return () => { cleanupRef.current?.(); };
+  }, []);
 
   const connect = useCallback(async () => {
     setIsConnecting(true);
     try {
-      await requestAccess();
-      await sync();
+      const { address: addr } = await StellarWalletsKit.authModal();
+      setAddress(addr);
+    } catch {
+      setAddress(null);
     } finally {
       setIsConnecting(false);
     }
-  }, [sync]);
+  }, []);
 
   const disconnect = useCallback(() => {
+    StellarWalletsKit.disconnect();
     setAddress(null);
   }, []);
 
   const signTransaction = useCallback(async (xdr: string): Promise<string> => {
-    const { signedTxXdr } = await freighterSign(xdr, {
-      networkPassphrase: 'Test SDF Network ; September 2015',
+    const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
+      networkPassphrase: NETWORK,
     });
     return signedTxXdr;
   }, []);
