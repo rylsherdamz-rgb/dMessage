@@ -17,13 +17,6 @@ import { CONTRACT_IDS } from '@/lib/stellar';
 import { writeContract, arg } from '@/lib/soroban';
 import { hexDecode } from '@/lib/hex';
 
-function stringTo32Bytes(s: string): Uint8Array {
-  const encoded = new TextEncoder().encode(s);
-  const out = new Uint8Array(32);
-  out.set(encoded.slice(0, 32));
-  return out;
-}
-
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -69,7 +62,7 @@ export default function ConversationPage() {
           [
             arg.address(address),
             arg.bytes(hexDecode(id)),
-            arg.bytes(stringTo32Bytes(cid)),
+            arg.bytes(new TextEncoder().encode(cid)),
             arg.u32(0),
           ],
           address,

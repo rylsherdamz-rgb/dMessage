@@ -71,7 +71,7 @@ export async function registerUser(
       arg.address(address),
       arg.string(username),
       arg.bytes(pubkeyBytes),
-      arg.none(), // metadata_ipfs: Option::None
+      arg.bytes(new Uint8Array()), // metadata_ipfs: empty Bytes
     ],
     address,
     signTransaction,

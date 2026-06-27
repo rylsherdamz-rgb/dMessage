@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { readContract, arg } from '@/lib/soroban';
-import { hexDecode, hexEncode } from '@/lib/hex';
+import { hexDecode } from '@/lib/hex';
 
 export interface MessageData {
   sender: string;
@@ -40,7 +40,7 @@ export function useMessages(conversationId: string, page = 0) {
         return (raw ?? []).map((m) => ({
           sender: m.sender,
           timestamp: Number(m.timestamp),
-          contentHash: hexEncode(new Uint8Array(m.content_hash)),
+          contentHash: new TextDecoder().decode(new Uint8Array(m.content_hash)),
           contentType: Number(m.content_type),
         }));
       } catch (err) {

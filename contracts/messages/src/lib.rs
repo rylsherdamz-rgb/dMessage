@@ -7,7 +7,7 @@ use soroban_sdk::xdr::ToXdr;
 pub struct Message {
     pub sender: Address,
     pub timestamp: u64,
-    pub content_hash: BytesN<32>,
+    pub content_hash: Bytes,
     pub content_type: u32,
 }
 
@@ -20,7 +20,7 @@ impl MessageContract {
         env: Env,
         sender: Address,
         conversation_id: BytesN<32>,
-        content_hash: BytesN<32>,
+        content_hash: Bytes,
         content_type: u32,
     ) -> BytesN<32> {
         sender.require_auth();
@@ -36,9 +36,7 @@ impl MessageContract {
         for b in timestamp.to_be_bytes().iter() {
             preimage.push_back(*b);
         }
-        for b in content_hash.to_array().iter() {
-            preimage.push_back(*b);
-        }
+        preimage.append(&content_hash);
         let message_id: BytesN<32> = env.crypto().sha256(&preimage).into();
 
         env.storage()
@@ -126,8 +124,8 @@ mod test {
         env.crypto().sha256(&preimage).into()
     }
 
-    fn make_content_hash(env: &Env, val: &[u8; 32]) -> BytesN<32> {
-        BytesN::from_array(env, val)
+    fn make_content_hash(env: &Env, val: &[u8; 32]) -> Bytes {
+        Bytes::from_array(env, val)
     }
 
     #[test]

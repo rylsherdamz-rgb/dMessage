@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { fetchFromIPFS } from '@/lib/ipfs';
 import { decrypt, importPublicKey, deriveSharedKey } from '@/lib/crypto';
+import { Avatar } from '@/components/ui/Avatar';
 
 interface MessageBubbleProps {
   sender: string;
@@ -30,7 +31,8 @@ export function MessageBubble({
   const [decrypting, setDecrypting] = useState(false);
 
   useEffect(() => {
-    if (!contentHash || contentHash === '0000000000000000000000000000000000000000000000000000000000000000') {
+    if (!contentHash) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setContent('[placeholder]');
       return;
     }
@@ -74,39 +76,41 @@ export function MessageBubble({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.15, delay: index * 0.02 }}
-      className={`max-w-[70%] ${
-        isOwn
-          ? 'self-end'
-          : 'self-start'
+      className={`flex max-w-[80%] items-end gap-2 ${
+        isOwn ? 'flex-row-reverse self-end' : 'self-start'
       }`}
     >
-      {!isOwn && (
-        <p className="mb-1.5 ml-1 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-          {sender.slice(0, 6)}...
-        </p>
-      )}
-      <div
-        className={`border-3 px-5 py-3 ${
-          isOwn
-            ? 'border-[var(--accent)] bg-black text-[var(--accent)]'
-            : 'border-[var(--border)] bg-[var(--bg-surface)] text-white'
-        }`}
-      >
-        {decrypting ? (
-          <p className="font-mono text-sm italic opacity-40">decrypting...</p>
-        ) : contentType === 2 ? (
-          content ? (
-            <img src={content} alt="media" className="max-w-full" />
-          ) : (
-            <p className="font-mono text-sm italic opacity-40">loading...</p>
-          )
-        ) : (
-          <p className="font-mono text-sm leading-relaxed">{content ?? ''}</p>
+      {!isOwn && <Avatar seed={sender} size={28} className="mb-5" />}
+      <div className="min-w-0">
+        {!isOwn && (
+          <p className="mb-1.5 ml-1 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+            {sender.slice(0, 6)}…
+          </p>
         )}
+        <div
+          className={`border-2 px-4 py-2.5 ${
+            isOwn
+              ? 'border-[var(--accent)] bg-black text-[var(--accent)]'
+              : 'border-[var(--border-strong)] bg-[var(--bg-surface)] text-white'
+          }`}
+        >
+          {decrypting ? (
+            <p className="font-mono text-sm italic opacity-40">decrypting…</p>
+          ) : contentType === 2 ? (
+            content ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={content} alt="media" className="max-w-full" />
+            ) : (
+              <p className="font-mono text-sm italic opacity-40">loading…</p>
+            )
+          ) : (
+            <p className="font-mono text-sm leading-relaxed break-words">{content ?? ''}</p>
+          )}
+        </div>
+        <p className={`mt-1 font-mono text-[10px] text-[var(--text-faint)] ${isOwn ? 'text-right' : 'text-left'}`}>
+          {new Date(timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </p>
       </div>
-      <p className={`mt-1.5 font-mono text-[10px] text-[var(--text-muted)] ${isOwn ? 'text-right' : 'text-left'}`}>
-        {new Date(timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-      </p>
     </motion.div>
   );
 }
