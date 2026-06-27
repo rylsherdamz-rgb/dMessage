@@ -6,7 +6,7 @@ REPO_DIR="$SCRIPT_DIR/.."
 
 RPC="${SOROBAN_RPC:-https://soroban-rpc.testnet.stellar.gateway.fm}"
 PASSPHRASE="${SOROBAN_PASSPHRASE:-Test SDF Network ; September 2015}"
-SECRET="${SOROBAN_SECRET_KEY:?SOROBAN_SECRET_KEY not set}"
+SECRET="${SOROBAN_SECRET_KEY:-dmessage-deployer}"
 
 CONTRACTS=("user_registry" "social_graph" "messages")
 
