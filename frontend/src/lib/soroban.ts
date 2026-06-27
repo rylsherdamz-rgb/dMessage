@@ -23,8 +23,8 @@ export const arg = {
 };
 
 /**
- * Read-only contract call via transaction simulation. No signing or funding
- * required for view methods; `sourceAddress` just provides a valid source.
+ * Read-only contract call via transaction simulation.
+ * Fetches the real account (sequence number) for a valid simulation.
  * Returns the decoded native value, or `null` for void/None results.
  */
 export async function readContract<T = unknown>(
@@ -35,7 +35,7 @@ export async function readContract<T = unknown>(
 ): Promise<T | null> {
   const server = getSorobanServer();
   const contract = new Contract(contractId);
-  const source = new Account(sourceAddress, '0');
+  const source = await server.getAccount(sourceAddress);
 
   const tx = new TransactionBuilder(source, {
     fee: '100',

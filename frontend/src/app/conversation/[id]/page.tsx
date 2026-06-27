@@ -1,12 +1,17 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useMessages } from '@/hooks/useMessages';
-import { useWallet } from '@/components/wallet/WalletProvider';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Send, ShieldCheck } from 'lucide-react';
+import { ChatShell } from '@/components/chat/ChatShell';
+import { ConnectGate } from '@/components/layout/ConnectGate';
+import { Nav } from '@/components/layout/Nav';
 import { MessageBubble } from '@/components/conversation/MessageBubble';
+import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
+import { useMessages } from '@/hooks/useMessages';
+import { useConversations } from '@/hooks/useConversations';
+import { useWallet } from '@/components/wallet/WalletProvider';
 import { uploadToIPFS } from '@/lib/ipfs';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { writeContract, arg } from '@/lib/soroban';
@@ -22,11 +27,18 @@ function stringTo32Bytes(s: string): Uint8Array {
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { address, signTransaction } = useWallet();
+  const { address, isConnected, signTransaction } = useWallet();
   const { data: messages, isLoading } = useMessages(id);
+  const { data: conversations } = useConversations();
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const peerAddress = useMemo(
+    () => conversations?.find((c) => c.conversationId === id)?.peerAddress ?? id,
+    [conversations, id],
+  );
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -39,12 +51,18 @@ export default function ConversationPage() {
     if (!text || sending || !address) return;
 
     setSending(true);
+    setSendError(null);
     try {
       const encoded = new TextEncoder().encode(text);
-      const cid = await uploadToIPFS(new Blob([encoded]));
+      let cid: string;
+      try {
+        cid = await uploadToIPFS(new Blob([encoded]));
+      } catch {
+        setSendError('IPFS pinning service not configured — message stored on-chain only');
+        cid = '';
+      }
 
-      if (CONTRACT_IDS.messages) {
-        // send_message(sender, conversation_id, content_hash, content_type)
+      if (CONTRACT_IDS.messages && cid) {
         await writeContract(
           CONTRACT_IDS.messages,
           'send_message',
@@ -58,80 +76,116 @@ export default function ConversationPage() {
           signTransaction,
         );
       }
-
       setInput('');
     } catch (err) {
       console.error('[ConversationPage] send failed:', err);
+      setSendError('Transaction failed — check your wallet and try again');
     } finally {
       setSending(false);
     }
   }, [input, sending, address, id, signTransaction]);
 
+  if (!isConnected) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Nav />
+        <ConnectGate message="Authenticate to open this conversation" />
+      </div>
+    );
+  }
+
+  const shortPeer = `${peerAddress.slice(0, 8)}…${peerAddress.slice(-6)}`;
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col">
-      <header className="flex items-center justify-between border-b-3 border-[var(--border)] px-8 py-5">
-        <div className="flex items-center gap-4">
+    <ChatShell activeId={id}>
+      <div className="flex h-full flex-col">
+        {/* thread header */}
+        <header className="flex items-center gap-3 border-b-2 border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3">
           <button
             onClick={() => router.push('/dashboard')}
-            aria-label="Back to conversations"
-            className="neobrutalist flex items-center bg-[var(--bg-surface)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
+            aria-label="Back"
+            className="flex items-center text-[var(--text-muted)] transition-colors hover:text-[var(--accent)] md:hidden"
           >
-            <ArrowLeft className="h-4 w-4" strokeWidth={2} aria-hidden />
+            <ArrowLeft className="h-5 w-5" strokeWidth={2} />
           </button>
-          <h2 className="font-mono text-sm font-bold tracking-tight">
-            {id.slice(0, 8)}...
-            <span className="text-[var(--text-muted)]">{id.slice(-6)}</span>
-          </h2>
-        </div>
-      </header>
-
-      <div ref={scrollRef} className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
-        {isLoading && (
-          <div className="flex items-center justify-center py-16">
-            <Spinner />
-          </div>
-        )}
-        {messages?.length === 0 && !isLoading && (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="font-mono text-xs uppercase tracking-[0.15em] text-[var(--text-muted)]">
-              No messages yet
+          <Avatar seed={peerAddress} size={40} online />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-mono text-sm font-black tracking-tight text-white">
+              {shortPeer}
+            </p>
+            <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">
+              <ShieldCheck className="h-3 w-3" strokeWidth={2} aria-hidden />
+              End-to-end encrypted
             </p>
           </div>
-        )}
-        {messages?.map((msg, i) => (
-          <MessageBubble
-            key={`${msg.timestamp}-${i}`}
-            sender={msg.sender}
-            timestamp={msg.timestamp}
-            contentHash={msg.contentHash}
-            contentType={msg.contentType}
-            isOwn={msg.sender === address}
-            index={i}
-          />
-        ))}
-      </div>
+        </header>
 
-      <div className="border-t-3 border-[var(--border)] p-4">
-        <form
-          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-          className="flex gap-3"
+        {/* messages */}
+        <div
+          ref={scrollRef}
+          className="flex flex-1 flex-col gap-3 overflow-y-auto bg-grid p-4 sm:p-6"
         >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            disabled={sending}
-            className="neobrutalist-input flex-1 bg-[var(--bg-surface)] px-5 py-4 font-mono text-sm text-white placeholder-[var(--text-muted)] disabled:opacity-40"
-          />
-          <button
-            type="submit"
-            disabled={sending || !input.trim()}
-            className="neobrutalist-accent bg-black px-8 py-4 font-mono text-xs font-bold uppercase tracking-widest text-[var(--accent)] disabled:opacity-30"
+          {isLoading && (
+            <div className="flex items-center justify-center py-16">
+              <Spinner />
+            </div>
+          )}
+          {!isLoading && messages?.length === 0 && (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2">
+              <Avatar seed={peerAddress} size={56} />
+              <p className="mt-2 font-mono text-xs uppercase tracking-[0.15em] text-[var(--text-muted)]">
+                No messages yet — say hello
+              </p>
+            </div>
+          )}
+          {messages?.map((msg, i) => (
+            <MessageBubble
+              key={`${msg.timestamp}-${i}`}
+              sender={msg.sender}
+              timestamp={msg.timestamp}
+              contentHash={msg.contentHash}
+              contentType={msg.contentType}
+              isOwn={msg.sender === address}
+              index={i}
+            />
+          ))}
+        </div>
+
+        {/* error */}
+        {sendError && (
+          <div className="border-t-2 border-[var(--danger)] bg-[var(--bg-surface)] px-4 py-2 font-mono text-xs text-[var(--danger)]">
+            {sendError}
+          </div>
+        )}
+
+        {/* composer */}
+        <div className="border-t-2 border-[var(--border-strong)] bg-[var(--bg-surface)] p-3 sm:p-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend();
+            }}
+            className="flex gap-3"
           >
-            {sending ? '...' : 'Send'}
-          </button>
-        </form>
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type a message…"
+              disabled={sending}
+              className="brutal-input min-w-0 flex-1 bg-[var(--bg)] px-4 py-3 font-mono text-sm text-white placeholder-[var(--text-muted)] disabled:opacity-40"
+            />
+            <button
+              type="submit"
+              disabled={sending || !input.trim()}
+              aria-label="Send"
+              className="brutal-accent flex items-center gap-2 bg-black px-5 py-3 font-mono text-xs font-bold uppercase tracking-widest text-[var(--accent)] disabled:opacity-30"
+            >
+              <Send className="h-4 w-4" strokeWidth={2} aria-hidden />
+              <span className="hidden sm:inline">{sending ? '…' : 'Send'}</span>
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
+    </ChatShell>
   );
 }
