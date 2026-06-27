@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
-import { WalletProvider } from "@/components/wallet/WalletProvider";
+import { ClientWalletProvider } from "@/components/wallet/ClientWalletProvider";
 import { UsernamePrompt } from "@/components/wallet/UsernamePrompt";
 
 const geistMono = Geist_Mono({
@@ -51,10 +51,10 @@ export default function RootLayout({
         </div>
 
         <Providers>
-          <WalletProvider>
+          <ClientWalletProvider>
             {children}
             <UsernamePrompt />
-          </WalletProvider>
+          </ClientWalletProvider>
         </Providers>
       </body>
     </html>
