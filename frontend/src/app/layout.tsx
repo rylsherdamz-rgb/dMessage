@@ -3,6 +3,7 @@ import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { WalletProvider } from "@/components/wallet/WalletProvider";
+import { UsernamePrompt } from "@/components/wallet/UsernamePrompt";
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
@@ -50,7 +51,10 @@ export default function RootLayout({
         </div>
 
         <Providers>
-          <WalletProvider>{children}</WalletProvider>
+          <WalletProvider>
+            {children}
+            <UsernamePrompt />
+          </WalletProvider>
         </Providers>
       </body>
     </html>

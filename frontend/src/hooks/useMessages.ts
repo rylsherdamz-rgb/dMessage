@@ -1,9 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { getSorobanServer, CONTRACT_IDS } from '@/lib/stellar';
+import { useWallet } from '@/components/wallet/WalletProvider';
+import { CONTRACT_IDS } from '@/lib/stellar';
+import { readContract, arg } from '@/lib/soroban';
 import { hexDecode, hexEncode } from '@/lib/hex';
-import SorobanClient from 'stellar-sdk';
 
 export interface MessageData {
   sender: string;
@@ -12,44 +13,36 @@ export interface MessageData {
   contentType: number;
 }
 
-function bytesToScVal(bytes: Uint8Array) {
-  return SorobanClient.xdr.ScVal.scvBytes(bytes);
+interface RawMessage {
+  sender: string;
+  timestamp: bigint | number;
+  content_hash: Uint8Array;
+  content_type: number;
 }
 
 export function useMessages(conversationId: string, page = 0) {
+  const { address } = useWallet();
+
   return useQuery<MessageData[]>({
-    queryKey: ['messages', conversationId, page],
-    enabled: !!conversationId,
+    queryKey: ['messages', conversationId, page, address],
+    enabled: !!conversationId && !!address,
     queryFn: async () => {
-      if (!CONTRACT_IDS.messages) return [];
+      if (!address || !CONTRACT_IDS.messages) return [];
 
       try {
-        const contract = new SorobanClient.Contract(CONTRACT_IDS.messages);
-        const convBytes = hexDecode(conversationId);
-
-        const result = await getSorobanServer().simulateContract(
-          contract.call(
-            'get_messages',
-            bytesToScVal(convBytes),
-            SorobanClient.scval.toI32(page),
-            SorobanClient.scval.toI32(50),
-          ),
+        const raw = await readContract<RawMessage[]>(
+          CONTRACT_IDS.messages,
+          'get_messages',
+          [arg.bytes(hexDecode(conversationId)), arg.u32(page), arg.u32(50)],
+          address,
         );
 
-        if (!result.result) return [];
-
-        const scVal = result.result.retval;
-        const msgs = SorobanClient.scval.toVec(scVal);
-
-        return msgs.map((msg: any) => {
-          const map = SorobanClient.scval.toMap(msg);
-          return {
-            sender: SorobanClient.scval.toAddress(map.sender).toString(),
-            timestamp: Number(SorobanClient.scval.toU64(map.timestamp)),
-            contentHash: hexEncode(SorobanClient.scval.toBytes(map.content_hash)),
-            contentType: Number(SorobanClient.scval.toU32(map.content_type)),
-          };
-        });
+        return (raw ?? []).map((m) => ({
+          sender: m.sender,
+          timestamp: Number(m.timestamp),
+          contentHash: hexEncode(new Uint8Array(m.content_hash)),
+          contentType: Number(m.content_type),
+        }));
       } catch (err) {
         console.error('[useMessages] query failed:', err);
         return [];

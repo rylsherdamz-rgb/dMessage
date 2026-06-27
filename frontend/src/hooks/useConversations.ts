@@ -2,14 +2,20 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@/components/wallet/WalletProvider';
-import { getSorobanServer, CONTRACT_IDS } from '@/lib/stellar';
+import { CONTRACT_IDS } from '@/lib/stellar';
+import { readContract, arg } from '@/lib/soroban';
 import { hexEncode } from '@/lib/hex';
-import SorobanClient from 'stellar-sdk';
 
 export interface ConversationRef {
   conversationId: string;
   peerAddress: string;
   lastUpdated: number;
+}
+
+interface RawConversationRef {
+  conversation_id: Uint8Array;
+  peer_address: string;
+  last_updated: bigint | number;
 }
 
 export function useConversations() {
@@ -19,30 +25,21 @@ export function useConversations() {
     queryKey: ['conversations', address],
     enabled: isConnected && !!address,
     queryFn: async () => {
-      if (!address) return [];
-      if (!CONTRACT_IDS.socialGraph) return [];
+      if (!address || !CONTRACT_IDS.socialGraph) return [];
 
       try {
-        const contract = new SorobanClient.Contract(CONTRACT_IDS.socialGraph);
-        const addr = new SorobanClient.Address(address);
-
-        const result = await getSorobanServer().simulateContract(
-          contract.call('get_user_conversations', addr.toScVal()),
+        const raw = await readContract<RawConversationRef[]>(
+          CONTRACT_IDS.socialGraph,
+          'get_user_conversations',
+          [arg.address(address)],
+          address,
         );
 
-        if (!result.result) return [];
-
-        const scVal = result.result.retval;
-        const convs = SorobanClient.scval.toVec(scVal);
-
-        return convs.map((conv: any) => {
-          const map = SorobanClient.scval.toMap(conv);
-          return {
-            conversationId: hexEncode(SorobanClient.scval.toBytes(map.conversation_id)),
-            peerAddress: SorobanClient.scval.toAddress(map.peer_address).toString(),
-            lastUpdated: Number(SorobanClient.scval.toU64(map.last_updated)),
-          };
-        });
+        return (raw ?? []).map((c) => ({
+          conversationId: hexEncode(new Uint8Array(c.conversation_id)),
+          peerAddress: c.peer_address,
+          lastUpdated: Number(c.last_updated),
+        }));
       } catch (err) {
         console.error('[useConversations] query failed:', err);
         return [];

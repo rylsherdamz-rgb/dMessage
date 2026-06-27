@@ -4,16 +4,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { useMessages } from '@/hooks/useMessages';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { MessageBubble } from '@/components/conversation/MessageBubble';
 import { Spinner } from '@/components/ui/Spinner';
 import { uploadToIPFS } from '@/lib/ipfs';
-import { getSorobanServer, CONTRACT_IDS, NETWORK_PASSPHRASE } from '@/lib/stellar';
+import { CONTRACT_IDS } from '@/lib/stellar';
+import { writeContract, arg } from '@/lib/soroban';
 import { hexDecode } from '@/lib/hex';
-import SorobanClient from 'stellar-sdk';
-
-function bytesScVal(bytes: Uint8Array) {
-  return SorobanClient.xdr.ScVal.scvBytes(bytes);
-}
 
 function stringTo32Bytes(s: string): Uint8Array {
   const encoded = new TextEncoder().encode(s);
@@ -47,24 +44,19 @@ export default function ConversationPage() {
       const cid = await uploadToIPFS(new Blob([encoded]));
 
       if (CONTRACT_IDS.messages) {
-        const contract = new SorobanClient.Contract(CONTRACT_IDS.messages);
-        const convBytes = hexDecode(id);
-        const contentHash = stringTo32Bytes(cid);
-
-        const call = contract.call(
+        // send_message(sender, conversation_id, content_hash, content_type)
+        await writeContract(
+          CONTRACT_IDS.messages,
           'send_message',
-          bytesScVal(convBytes),
-          bytesScVal(contentHash),
-          SorobanClient.scval.toI32(0),
-        );
-
-        const tx = await getSorobanServer().prepareTransaction(
-          SorobanClient.TransactionBuilder.fromXdr(call.toXDR(), NETWORK_PASSPHRASE),
+          [
+            arg.address(address),
+            arg.bytes(hexDecode(id)),
+            arg.bytes(stringTo32Bytes(cid)),
+            arg.u32(0),
+          ],
           address,
+          signTransaction,
         );
-
-        const signed = await signTransaction(tx.toXDR());
-        await getSorobanServer().sendTransaction(signed);
       }
 
       setInput('');
@@ -81,9 +73,10 @@ export default function ConversationPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/dashboard')}
-            className="neobrutalist bg-[var(--bg-surface)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
+            aria-label="Back to conversations"
+            className="neobrutalist flex items-center bg-[var(--bg-surface)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
           >
-            &larr;
+            <ArrowLeft className="h-4 w-4" strokeWidth={2} aria-hidden />
           </button>
           <h2 className="font-mono text-sm font-bold tracking-tight">
             {id.slice(0, 8)}...

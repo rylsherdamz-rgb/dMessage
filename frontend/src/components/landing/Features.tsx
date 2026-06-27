@@ -1,12 +1,21 @@
 'use client';
 
 import { Reveal } from './Reveal';
+import {
+  Lock,
+  Wallet,
+  Globe,
+  Link2,
+  Zap,
+  Code2,
+  type LucideIcon,
+} from 'lucide-react';
 
 type Feature = {
   no: string;
   title: string;
   body: string;
-  glyph: string;
+  Icon: LucideIcon;
   accent: string;
 };
 
@@ -15,42 +24,42 @@ const FEATURES: Feature[] = [
     no: '01',
     title: 'End-to-End Encrypted',
     body: 'X25519 ECDH key exchange with AES-GCM-256. Messages are sealed client-side — only you and the recipient hold the keys.',
-    glyph: '🔒',
+    Icon: Lock,
     accent: 'var(--accent)',
   },
   {
     no: '02',
     title: 'Wallet Identity',
     body: 'No emails, no passwords. Your Stellar wallet is your identity. Connect Freighter, Albedo, or any Wallet Kit signer.',
-    glyph: '🔑',
+    Icon: Wallet,
     accent: 'var(--cyan)',
   },
   {
     no: '03',
     title: 'Decentralized Storage',
     body: 'Encrypted blobs live on IPFS, message hashes and metadata on-chain. No central server to seize, censor, or shut down.',
-    glyph: '🌐',
+    Icon: Globe,
     accent: 'var(--violet)',
   },
   {
     no: '04',
     title: 'On-Chain Integrity',
     body: 'Every message hash is anchored to Soroban. Tamper-evident, ordered, and verifiable without trusting any intermediary.',
-    glyph: '⛓',
+    Icon: Link2,
     accent: 'var(--amber)',
   },
   {
     no: '05',
     title: 'Low Gas Costs',
     body: 'A read-heavy storage pattern keeps writes cheap. Only hashes hit the chain — the heavy payload stays off-chain.',
-    glyph: '⚡',
+    Icon: Zap,
     accent: 'var(--accent)',
   },
   {
     no: '06',
     title: 'Fully Open Source',
     body: 'Auditable contracts and frontend, end to end. Verify the cryptography yourself — trust the code, not a company.',
-    glyph: '◇',
+    Icon: Code2,
     accent: 'var(--cyan)',
   },
 ];
@@ -77,12 +86,12 @@ export function Features() {
           <Reveal key={f.no} delay={(i % 3) * 0.08}>
             <article className="brutal group h-full bg-[var(--bg-surface)] p-6">
               <div className="flex items-start justify-between">
-                <span
-                  className="text-2xl leading-none transition-transform duration-300 group-hover:-translate-y-0.5"
+                <f.Icon
+                  className="h-6 w-6 transition-transform duration-300 group-hover:-translate-y-0.5"
+                  style={{ color: f.accent }}
+                  strokeWidth={2}
                   aria-hidden
-                >
-                  {f.glyph}
-                </span>
+                />
                 <span
                   className="font-mono text-xs font-black tracking-widest"
                   style={{ color: f.accent }}

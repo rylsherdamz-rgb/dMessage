@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { Reveal } from './Reveal';
 import { WalletConnector } from '@/components/wallet/WalletConnector';
 
@@ -33,9 +34,10 @@ export function CTA() {
           <WalletConnector />
           <Link
             href="/dashboard"
-            className="brutal-static bg-[var(--bg-surface)] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-white transition-colors hover:text-[var(--accent)]"
+            className="brutal-static flex items-center gap-2 bg-[var(--bg-surface)] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-white transition-colors hover:text-[var(--accent)]"
           >
-            Open App →
+            Open App
+            <ArrowRight className="h-4 w-4" strokeWidth={2.5} aria-hidden />
           </Link>
         </div>
       </Reveal>

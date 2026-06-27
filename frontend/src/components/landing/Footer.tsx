@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Orbit } from 'lucide-react';
 
 const LINKS = [
   {
@@ -72,8 +73,10 @@ export function Footer() {
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-faint)]">
             © {new Date().getFullYear()} dMessage · MIT License
           </p>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-faint)]">
-            Built with ☯ on Stellar Soroban
+          <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-faint)]">
+            Built with
+            <Orbit className="h-3.5 w-3.5 text-[var(--accent)]" strokeWidth={2} aria-hidden />
+            on Stellar Soroban
           </p>
         </div>
       </div>

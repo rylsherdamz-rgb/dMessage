@@ -1,6 +1,7 @@
 'use client';
 
 import { Reveal } from './Reveal';
+import { ArrowRight } from 'lucide-react';
 
 type Step = {
   no: string;
@@ -66,12 +67,11 @@ export function HowItWorks() {
                   {s.body}
                 </p>
                 {i < STEPS.length - 1 && (
-                  <span
+                  <ArrowRight
                     aria-hidden
-                    className="absolute right-4 top-7 hidden font-mono text-lg text-[var(--accent)] lg:block"
-                  >
-                    →
-                  </span>
+                    className="absolute right-4 top-7 hidden text-[var(--accent)] lg:block"
+                    strokeWidth={2}
+                  />
                 )}
               </div>
             </Reveal>

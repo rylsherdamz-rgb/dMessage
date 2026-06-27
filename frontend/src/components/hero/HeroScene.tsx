@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { StellarMascot } from '@/components/hero/StellarMascot';
 import { LogoMark } from '@/components/hero/LogoMark';
 import { WalletConnector } from '@/components/wallet/WalletConnector';
@@ -105,9 +106,10 @@ export function HeroScene() {
         >
           <Link
             href="/dashboard"
-            className="brutal bg-[var(--accent)] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-black transition-colors hover:bg-[var(--accent-dim)]"
+            className="brutal flex items-center gap-2 bg-[var(--accent)] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-black transition-colors hover:bg-[var(--accent-dim)]"
           >
-            Start Chatting →
+            Start Chatting
+            <ArrowRight className="h-4 w-4" strokeWidth={2.5} aria-hidden />
           </Link>
           <WalletConnector />
         </motion.div>

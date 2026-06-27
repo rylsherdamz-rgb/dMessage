@@ -1,5 +1,7 @@
 'use client';
 
+import { Asterisk } from 'lucide-react';
+
 /**
  * Infinite horizontal ticker. Renders the item set twice so the
  * `marquee` keyframe (translateX 0 -> -50%) loops seamlessly.
@@ -25,7 +27,7 @@ export function Marquee() {
             className="mx-6 flex items-center gap-6 font-mono text-xs font-black uppercase tracking-[0.2em]"
           >
             {item}
-            <span aria-hidden className="text-base leading-none">✦</span>
+            <Asterisk className="h-4 w-4" strokeWidth={2.5} aria-hidden />
           </span>
         ))}
       </div>
