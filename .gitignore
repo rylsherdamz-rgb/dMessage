@@ -1,0 +1,26 @@
+# Rust / Cargo
+**/target/
+**/Cargo.lock
+
+# Node / frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.production.local
+frontend/.vercel
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# OS
+.DS_Store
+*.pem
+
+# Debug logs
+*.log
+
+# Agent context
+.remember/

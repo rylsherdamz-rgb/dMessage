@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  --background: oklch(8% 0.02 270);
+  --foreground: oklch(95% 0 0);
+  --color-surface: oklch(14% 0.02 270);
+  --color-accent: oklch(68% 0.21 250);
+  --color-accent-dim: oklch(55% 0.18 250);
+  --color-text: oklch(95% 0 0);
+  --color-text-muted: oklch(60% 0 0);
+
+  --text-base: clamp(1rem, 0.92rem + 0.4vw, 1.125rem);
+  --text-hero: clamp(3rem, 1rem + 7vw, 8rem);
+  --text-lg: clamp(1.25rem, 1rem + 1.5vw, 2rem);
+
+  --space-section: clamp(4rem, 3rem + 5vw, 10rem);
+
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --radius: 1rem;
+  --radius-sm: 0.5rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}

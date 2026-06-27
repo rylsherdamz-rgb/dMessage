@@ -1,0 +1,18 @@
+[package]
+name = "social_graph"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = "21.7.7"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+lto = true
+debug = 0
+codegen-units = 1
