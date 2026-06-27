@@ -2,19 +2,17 @@
 
 **Escape the surveillance. Own your conversations.**
 
+**Live deployment:** [dmessage.vercel.app](https://dmessage.vercel.app)
+
+## Project Description
+
 dMessage is a decentralized, end-to-end encrypted messaging platform built on the Stellar blockchain — created so you can talk without being listened to, mined, traded, or fed into someone's AI training pipeline.
 
 Big tech companies treat your private conversations as their free data mine. Every message, every contact, every metadata point is scraped, analyzed, and used to train models you'll never control and profits you'll never see. dMessage exists to break that cycle.
 
 Your data is not their product. Your words are not their training set.
 
-**Live deployment:** [dmessage.vercel.app](https://dmessage.vercel.app)
-
-## How It Works
-
-Messages are encrypted on your device using X25519 ECDH key exchange + AES-GCM-256 — the same standards militaries and security professionals trust. The encrypted blobs live on IPFS, not on a corporate server. Only cryptographic hashes and metadata touch the Stellar Soroban blockchain, which no single entity controls.
-
-No servers to subpoena. No database to breach. No CEO to decide your data is worth more than your privacy.
+Messages are encrypted on your device using X25519 ECDH key exchange + AES-GCM-256 — the same standards militaries and security professionals trust. The encrypted blobs live on IPFS, not on a corporate server. Only cryptographic hashes and metadata touch the Stellar Soroban blockchain, which no single entity controls. No servers to subpoena. No database to breach. No CEO to decide your data is worth more than your privacy.
 
 ## Project Vision
 
@@ -63,7 +61,7 @@ A world where:
 | **SocialGraph** | Creates deterministic conversation IDs (SHA-256 of sorted addresses), maintains per-user conversation lists |
 | **MessageContract** | Stores message hashes with ordering, supports paginated retrieval per conversation |
 
-## Deployed Contracts (Testnet)
+## Contract Details
 
 ![Account creation flow](images/account.png)
 ![Message sending flow](images/messages.png)
