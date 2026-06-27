@@ -47,22 +47,23 @@ export default function ConversationPage() {
     setSendError(null);
     try {
       const encoded = new TextEncoder().encode(text);
-      let cid: string;
+      let contentBytes: Uint8Array;
       try {
-        cid = await uploadToIPFS(new Blob([encoded]));
+        const cid = await uploadToIPFS(new Blob([encoded]));
+        contentBytes = new TextEncoder().encode(cid);
       } catch {
-        setSendError('IPFS pinning service not configured — message stored on-chain only');
-        cid = '';
+        setSendError('IPFS pinning service not configured — message stored as plaintext');
+        contentBytes = encoded;
       }
 
-      if (CONTRACT_IDS.messages && cid) {
+      if (CONTRACT_IDS.messages) {
         await writeContract(
           CONTRACT_IDS.messages,
           'send_message',
           [
             arg.address(address),
             arg.bytes(hexDecode(id)),
-            arg.bytes(new TextEncoder().encode(cid)),
+            arg.bytes(contentBytes),
             arg.u32(0),
           ],
           address,
