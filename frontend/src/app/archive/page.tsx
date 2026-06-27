@@ -9,11 +9,12 @@ import { Spinner } from '@/components/ui/Spinner';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { useConversations } from '@/hooks/useConversations';
 import { useArchive } from '@/hooks/useArchive';
+import { useProfile } from '@/hooks/useProfile';
 
 export default function ArchivePage() {
   const { isConnected } = useWallet();
   const { data: conversations, isLoading } = useConversations();
-  const { isArchived, toggle } = useArchive();
+  const { isArchived, restore } = useArchive();
 
   if (!isConnected) {
     return (
@@ -24,7 +25,7 @@ export default function ArchivePage() {
     );
   }
 
-  const archivedConvs = (conversations ?? []).filter((c) => isArchived(c.conversationId));
+  const archivedConvs = (conversations ?? []).filter((c) => isArchived(c.peerAddress));
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -55,29 +56,50 @@ export default function ArchivePage() {
 
         <div className="flex flex-col gap-2">
           {archivedConvs.map((conv) => (
-            <div
+            <ArchivedRow
               key={conv.conversationId}
-              className="group flex items-center justify-between border-2 border-[var(--border)] bg-[var(--bg-surface)] px-5 py-4"
-            >
-              <Link
-                href={`/conversation/${conv.conversationId}`}
-                className="flex items-center gap-3 font-mono text-sm font-bold tracking-tight transition-colors hover:text-[var(--accent)]"
-              >
-                <Avatar seed={conv.peerAddress} size={36} />
-                {conv.peerAddress.slice(0, 8)}…
-                <span className="text-[var(--text-muted)]">{conv.peerAddress.slice(-6)}</span>
-              </Link>
-              <button
-                onClick={() => toggle(conv.conversationId)}
-                className="flex items-center gap-2 border-2 border-[var(--border)] px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-              >
-                <ArchiveRestore className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                Restore
-              </button>
-            </div>
+              peerAddress={conv.peerAddress}
+              onRestore={() => restore(conv.peerAddress)}
+            />
           ))}
         </div>
       </main>
+    </div>
+  );
+}
+
+function ArchivedRow({
+  peerAddress,
+  onRestore,
+}: {
+  peerAddress: string;
+  onRestore: () => void;
+}) {
+  const { data: profile } = useProfile(peerAddress);
+
+  return (
+    <div className="group flex items-center justify-between border-2 border-[var(--border)] bg-[var(--bg-surface)] px-5 py-4">
+      <Link
+        href={`/conversation/${peerAddress}`}
+        className="flex items-center gap-3 font-mono text-sm font-bold tracking-tight transition-colors hover:text-[var(--accent)]"
+      >
+        <Avatar seed={peerAddress} size={36} />
+        {profile?.username ? (
+          <span>@{profile.username}</span>
+        ) : (
+          <>
+            {peerAddress.slice(0, 8)}…
+            <span className="text-[var(--text-muted)]">{peerAddress.slice(-6)}</span>
+          </>
+        )}
+      </Link>
+      <button
+        onClick={onRestore}
+        className="flex items-center gap-2 border-2 border-[var(--border)] px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+      >
+        <ArchiveRestore className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+        Restore
+      </button>
     </div>
   );
 }

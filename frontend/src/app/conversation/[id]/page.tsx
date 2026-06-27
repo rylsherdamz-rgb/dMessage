@@ -1,17 +1,18 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Send, ShieldCheck } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Send, ShieldCheck, X } from 'lucide-react';
 import { ChatShell } from '@/components/chat/ChatShell';
 import { ConnectGate } from '@/components/layout/ConnectGate';
 import { Nav } from '@/components/layout/Nav';
 import { MessageBubble } from '@/components/conversation/MessageBubble';
 import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
-import { useMessages } from '@/hooks/useMessages';
-import { useConversations } from '@/hooks/useConversations';
+import { useMessages, messagesQueryKey } from '@/hooks/useMessages';
 import { useProfile } from '@/hooks/useProfile';
+import { useArchive } from '@/hooks/useArchive';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { writeContract, arg } from '@/lib/soroban';
@@ -20,9 +21,10 @@ export default function ConversationPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { address, isConnected, signTransaction } = useWallet();
+  const queryClient = useQueryClient();
   const peerAddress = id;
+  const { hide } = useArchive();
   const { data: messages, isLoading } = useMessages(peerAddress);
-  const { data: conversations } = useConversations();
   const { data: peerProfile } = useProfile(peerAddress);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -58,13 +60,20 @@ export default function ConversationPage() {
         );
       }
       setInput('');
+
+      // The send tx needs a few seconds to be included in a ledger before the
+      // new message is queryable. Refetch immediately (in case it's already in)
+      // and again after confirmation latency.
+      const key = messagesQueryKey(address, peerAddress);
+      queryClient.invalidateQueries({ queryKey: key });
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: key }), 6000);
     } catch (err) {
       console.error('[ConversationPage] send failed:', err);
       setSendError('Transaction failed — check your wallet and try again');
     } finally {
       setSending(false);
     }
-  }, [input, sending, address, peerAddress, signTransaction]);
+  }, [input, sending, address, peerAddress, signTransaction, queryClient]);
 
   if (!isConnected) {
     return (
@@ -100,6 +109,17 @@ export default function ConversationPage() {
               End-to-end encrypted
             </p>
           </div>
+          <button
+            onClick={() => {
+              hide(peerAddress);
+              router.push('/dashboard');
+            }}
+            aria-label="Close conversation"
+            title="Close conversation"
+            className="flex h-9 w-9 shrink-0 items-center justify-center text-[var(--text-muted)] transition-colors hover:text-[var(--danger)]"
+          >
+            <X className="h-5 w-5" strokeWidth={2} />
+          </button>
         </header>
 
         <div

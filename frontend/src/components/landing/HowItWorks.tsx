@@ -23,12 +23,12 @@ const STEPS: Step[] = [
   {
     no: '03',
     title: 'Encrypt',
-    body: 'Messages are sealed in your browser with a shared secret derived via ECDH, then pinned to IPFS.',
+    body: 'Messages are sealed in your browser with a shared secret derived via ECDH, then stored on-chain.',
   },
   {
     no: '04',
     title: 'Anchor',
-    body: 'The content hash is written to Soroban, ordered within your conversation. Tamper-evident, forever.',
+    body: 'The encrypted content is written to Soroban, ordered within your inbox. Tamper-evident, forever.',
   },
 ];
 

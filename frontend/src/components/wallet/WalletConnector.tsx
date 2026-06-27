@@ -1,14 +1,17 @@
 'use client';
 
 import { useWallet } from '@/components/wallet/WalletProvider';
+import { useProfile } from '@/hooks/useProfile';
 import { motion } from 'framer-motion';
 
 export function WalletConnector() {
   const { isConnected, isConnecting, address, connect, disconnect } = useWallet();
+  const { data: profile } = useProfile(isConnected ? address : null);
 
   const truncated = address
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : '';
+  const label = profile?.username ? `@${profile.username}` : truncated;
 
   return (
     <motion.button
@@ -22,7 +25,7 @@ export function WalletConnector() {
           : 'neobrutalist bg-[var(--accent)] text-black hover:bg-[var(--accent-dim)]'
       } disabled:opacity-40`}
     >
-      {isConnecting ? 'Connecting...' : isConnected ? truncated : 'Connect Wallet'}
+      {isConnecting ? 'Connecting...' : isConnected ? label : 'Connect Wallet'}
     </motion.button>
   );
 }

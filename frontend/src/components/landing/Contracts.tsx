@@ -14,7 +14,7 @@ const CONTRACTS: Contract[] = [
   {
     name: 'UserRegistry',
     role: 'Identity',
-    body: 'Stores user profiles: usernames, X25519 encryption public keys, and IPFS metadata links.',
+    body: 'Stores user profiles: usernames, X25519 encryption public keys, and on-chain metadata.',
     methods: ['register_user()', 'get_user()'],
     accent: 'var(--accent)',
   },

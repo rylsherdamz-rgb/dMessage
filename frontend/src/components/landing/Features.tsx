@@ -36,8 +36,8 @@ const FEATURES: Feature[] = [
   },
   {
     no: '03',
-    title: 'Decentralized Storage',
-    body: 'Encrypted blobs live on IPFS, message hashes and metadata on-chain. No central server to seize, censor, or shut down.',
+    title: 'On-Chain Storage',
+    body: 'Encrypted message content is stored directly on Soroban — no IPFS, no off-chain blobs. No central server to seize, censor, or shut down.',
     Icon: Globe,
     accent: 'var(--violet)',
   },

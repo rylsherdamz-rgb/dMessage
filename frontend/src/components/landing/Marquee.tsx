@@ -9,7 +9,7 @@ import { Asterisk } from 'lucide-react';
 const ITEMS = [
   'END-TO-END ENCRYPTED',
   'STELLAR SOROBAN',
-  'IPFS STORAGE',
+  'ON-CHAIN STORAGE',
   'CENSORSHIP-RESISTANT',
   'X25519 · AES-GCM-256',
   'YOU OWN YOUR KEYS',

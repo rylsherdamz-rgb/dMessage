@@ -2,29 +2,26 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Plus, Archive, Loader2, X } from 'lucide-react';
+import { Plus, Loader2, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { useConversations } from '@/hooks/useConversations';
+import { useProfile } from '@/hooks/useProfile';
 import { useArchive } from '@/hooks/useArchive';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { writeContract, arg } from '@/lib/soroban';
 
-function shortAddr(a: string) {
-  return `${a.slice(0, 6)}…${a.slice(-4)}`;
-}
-
 export function ConversationSidebar({ activeId }: { activeId?: string }) {
   const { address, signTransaction } = useWallet();
   const { data: conversations, isLoading, refetch } = useConversations();
-  const { isArchived, toggle } = useArchive();
+  const { isArchived, hide, hideAll } = useArchive();
 
   const [newPeer, setNewPeer] = useState('');
   const [creating, setCreating] = useState(false);
   const [showNew, setShowNew] = useState(false);
 
-  const active = (conversations ?? []).filter((c) => !isArchived(c.conversationId));
+  const active = (conversations ?? []).filter((c) => !isArchived(c.peerAddress));
 
   const handleCreate = async () => {
     const peer = newPeer.trim();
@@ -50,7 +47,6 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
 
   return (
     <div className="flex h-full flex-col bg-[var(--bg-surface)]">
-      {/* header */}
       <div className="flex items-center justify-between border-b-2 border-[var(--border-strong)] px-4 py-4">
         <div className="flex items-center gap-2">
           <span className="status-dot bg-[var(--accent)] text-[var(--accent)]" />
@@ -58,16 +54,26 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
             Messages
           </h2>
         </div>
-        <button
-          onClick={() => setShowNew((s) => !s)}
-          aria-label="New conversation"
-          className="brutal flex h-8 w-8 items-center justify-center bg-[var(--accent)] text-black"
-        >
-          {showNew ? <X className="h-4 w-4" strokeWidth={2.5} /> : <Plus className="h-4 w-4" strokeWidth={2.5} />}
-        </button>
+        <div className="flex items-center gap-2">
+          {active.length > 0 && (
+            <button
+              onClick={() => hideAll(active.map((c) => c.peerAddress))}
+              title="Close all conversations"
+              className="font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[var(--danger)]"
+            >
+              Close all
+            </button>
+          )}
+          <button
+            onClick={() => setShowNew((s) => !s)}
+            aria-label="New conversation"
+            className="brutal flex h-8 w-8 items-center justify-center bg-[var(--accent)] text-black"
+          >
+            {showNew ? <X className="h-4 w-4" strokeWidth={2.5} /> : <Plus className="h-4 w-4" strokeWidth={2.5} />}
+          </button>
+        </div>
       </div>
 
-      {/* new conversation */}
       {showNew && (
         <form
           onSubmit={(e) => {
@@ -93,7 +99,6 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
         </form>
       )}
 
-      {/* list */}
       <div className="flex-1 overflow-y-auto">
         {isLoading && (
           <div className="flex justify-center py-10">
@@ -110,41 +115,49 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
         )}
 
         {active.map((conv) => {
-          const isActive = conv.conversationId === activeId;
+          const isActive = conv.peerAddress === activeId;
           return (
             <div
               key={conv.conversationId}
-              className={`group flex items-center gap-3 border-l-2 px-4 py-3 transition-colors ${
+              className={`group flex items-center gap-2 border-l-2 px-4 py-3 transition-colors ${
                 isActive
                   ? 'border-[var(--accent)] bg-[var(--bg-elevated)]'
                   : 'border-transparent hover:bg-[var(--bg-elevated)]'
               }`}
             >
               <Link
-                href={`/conversation/${conv.conversationId}`}
+                href={`/conversation/${conv.peerAddress}`}
                 className="flex min-w-0 flex-1 items-center gap-3"
               >
                 <Avatar seed={conv.peerAddress} size={40} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-mono text-sm font-bold tracking-tight text-white">
-                    {shortAddr(conv.peerAddress)}
-                  </p>
-                  <p className="truncate font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                    {new Date(conv.lastUpdated * 1000).toLocaleDateString()}
-                  </p>
-                </div>
+                <PeerName address={conv.peerAddress} lastUpdated={conv.lastUpdated} />
               </Link>
               <button
-                onClick={() => toggle(conv.conversationId)}
-                aria-label="Archive"
-                className="text-[var(--text-faint)] opacity-0 transition-opacity hover:text-[var(--accent)] group-hover:opacity-100"
+                onClick={() => hide(conv.peerAddress)}
+                aria-label="Close conversation"
+                title="Close conversation"
+                className="flex h-8 w-8 shrink-0 items-center justify-center text-[var(--text-faint)] transition-colors hover:text-[var(--danger)] md:opacity-0 md:group-hover:opacity-100"
               >
-                <Archive className="h-4 w-4" strokeWidth={2} />
+                <X className="h-4 w-4" strokeWidth={2} />
               </button>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function PeerName({ address, lastUpdated }: { address: string; lastUpdated: number }) {
+  const { data: profile } = useProfile(address);
+  return (
+    <div className="min-w-0 flex-1">
+      <p className="truncate font-mono text-sm font-bold tracking-tight text-white">
+        {profile?.username ? `@${profile.username}` : `${address.slice(0, 6)}…${address.slice(-4)}`}
+      </p>
+      <p className="truncate font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+        {new Date(lastUpdated * 1000).toLocaleDateString()}
+      </p>
     </div>
   );
 }
