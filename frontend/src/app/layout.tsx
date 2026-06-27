@@ -1,14 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import dynamic from "next/dynamic";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
+import { WalletProvider } from "@/components/wallet/WalletProvider";
 import { UsernamePrompt } from "@/components/wallet/UsernamePrompt";
-
-const WalletProvider = dynamic(
-  () => import("@/components/wallet/WalletProvider"),
-  { ssr: false },
-);
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
