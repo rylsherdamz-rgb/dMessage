@@ -1,18 +1,26 @@
 # dMessage
 
-Decentralized, end-to-end encrypted messaging platform on the Stellar blockchain.
+**Escape the surveillance. Own your conversations.**
 
-## Project Description
+dMessage is a decentralized, end-to-end encrypted messaging platform built on the Stellar blockchain — created so you can talk without being listened to, mined, traded, or fed into someone's AI training pipeline.
 
-dMessage is a censorship-resistant communication platform built on Stellar Soroban smart contracts. Messages are encrypted client-side and stored off-chain on IPFS, while cryptographic hashes, metadata, and user profiles live on-chain. This hybrid architecture enables private, user-owned messaging with low gas costs and no central point of failure.
+Big tech companies treat your private conversations as their free data mine. Every message, every contact, every metadata point is scraped, analyzed, and used to train models you'll never control and profits you'll never see. dMessage exists to break that cycle.
+
+Your data is not their product. Your words are not their training set.
+
+## How It Works
+
+Messages are encrypted on your device using X25519 ECDH key exchange + AES-GCM-256 — the same standards militaries and security professionals trust. The encrypted blobs live on IPFS, not on a corporate server. Only cryptographic hashes and metadata touch the Stellar Soroban blockchain, which no single entity controls.
+
+No servers to subpoena. No database to breach. No CEO to decide your data is worth more than your privacy.
 
 ## Project Vision
 
-To create a truly private, user-owned messaging network where:
-- Users own their identity and data via Stellar wallets
-- Messages are private by default with end-to-end encryption
-- The infrastructure is decentralized and resilient against censorship
-- Communication flows freely without intermediaries or gatekeepers
+A world where:
+- Your identity is your wallet — not a login tied to your real name, phone number, or email
+- Your messages are private by default — end-to-end encrypted before they leave your device
+- Your data stays yours — no one can resell, train on, or monetize your conversations
+- Your communication is uncensorable — no intermediary can decide who you're allowed to talk to
 
 ## Key Features
 
@@ -55,9 +63,11 @@ To create a truly private, user-owned messaging network where:
 
 ## Deployed Contracts (Testnet)
 
-![UserRegistry deployment](images/user_registry.png)
-![SocialGraph deployment](images/social_graph.png)
-![Messages deployment](images/messages.png)
+![Account creation flow](images/account.png)
+![Message sending flow](images/messages.png)
+![Social graph visualization](images/social_graph.png)
+![Test suite results](images/test.png)
+![User registry contract](images/user_registry.png)
 
 | Contract | Address | WASM Hash (SHA256) |
 |----------|---------|-------------------|
