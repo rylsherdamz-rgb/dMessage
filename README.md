@@ -69,6 +69,17 @@ A world where:
 ![Test suite results](images/test.png)
 ![User registry contract](images/user_registry.png)
 
+### UI Screenshots
+
+![Landing page](images/dmessage.vercel.app_.png)
+![Dashboard](images/dmessage.vercel.app_dashboard%20(1).png)
+![Dashboard contacts](images/dmessage.vercel.app_dashboard%20(2).png)
+![Dashboard messages](images/dmessage.vercel.app_dashboard%20(3).png)
+![Dashboard profile](images/dmessage.vercel.app_dashboard%20(4).png)
+![Desktop view](images/desktopview.png)
+
+**Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
+
 | Contract | Address | WASM Hash (SHA256) |
 |----------|---------|-------------------|
 | UserRegistry | `CAQ54Z6ARYWHSGQK4ZWPVLS3SEEDCCRTL4WJLEZAYFPMX4MPA5A77GQO` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` |
@@ -76,6 +87,8 @@ A world where:
 | MessageContract | `CDJFUACEJEV435V5PEFDYQO6M772VKJ23D3PIJKJPGTYMHKU4NFFODCG` | `0c11a4f44cb48271da223c81b47abdee68fbc9788d1bb3268a0840109523c41d` |
 
 Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAQ54Z6ARYWHSGQK4ZWPVLS3SEEDCCRTL4WJLEZAYFPMX4MPA5A77GQO) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CAIA32SCGTA2UTDWS7TYPSARBT2JJJ7JYR4EZ3ED5K6LNXI2LP645JKD) · [Messages](https://stellar.expert/explorer/testnet/contract/CDJFUACEJEV435V5PEFDYQO6M772VKJ23D3PIJKJPGTYMHKU4NFFODCG)
+
+All contracts were deployed by account [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM) — view all deployment transactions there.
 
 ### Source Verification
 
