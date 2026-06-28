@@ -39,7 +39,6 @@ export function UsernamePrompt() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDismissed(sessionStorage.getItem(DISMISS_KEY) === '1');
     } catch {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDismissed(false);
     }
   }, []);
@@ -59,11 +58,9 @@ export function UsernamePrompt() {
     }
     const v = validateUsername(value);
     if (!v.ok) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAvail({ kind: 'invalid', reason: v.reason ?? 'Invalid' });
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAvail({ kind: 'checking' });
     debounceRef.current = setTimeout(async () => {
       const res = await checkUsernameAvailable(value);

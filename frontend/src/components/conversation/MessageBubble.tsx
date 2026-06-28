@@ -5,7 +5,6 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useProfile } from '@/hooks/useProfile';
 
 interface MessageBubbleProps {
-  sender: string;
   timestamp: number;
   content: string;
   isOwn: boolean;
@@ -14,7 +13,6 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({
-  sender,
   timestamp,
   content,
   isOwn,
