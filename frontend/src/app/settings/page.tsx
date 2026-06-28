@@ -38,7 +38,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     // Seed the editable field from the on-chain profile once it loads.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (profile?.username) setUsername(profile.username);
   }, [profile?.username]);
 
