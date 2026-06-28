@@ -76,7 +76,12 @@ A world where:
 ![Dashboard contacts](images/dashboard-2.png)
 ![Dashboard messages](images/dashboard-3.png)
 ![Dashboard profile](images/dashboard-4.png)
-![Desktop view](images/desktopview.png)
+![UI screenshot 1](images/ui-1.png)
+![UI screenshot 2](images/ui-2.png)
+![UI screenshot 3](images/ui-3.png)
+![UI screenshot 4](images/ui-4.png)
+![UI screenshot 5](images/ui-5.png)
+![UI screenshot 6](images/ui-6.png)
 
 **Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
 
