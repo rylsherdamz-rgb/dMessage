@@ -71,11 +71,11 @@ A world where:
 
 ### UI Screenshots
 
-![Landing page](images/dmessage.vercel.app_.png)
-![Dashboard](images/dmessage.vercel.app_dashboard%20(1).png)
-![Dashboard contacts](images/dmessage.vercel.app_dashboard%20(2).png)
-![Dashboard messages](images/dmessage.vercel.app_dashboard%20(3).png)
-![Dashboard profile](images/dmessage.vercel.app_dashboard%20(4).png)
+![Landing page](images/landing.png)
+![Dashboard](images/dashboard-1.png)
+![Dashboard contacts](images/dashboard-2.png)
+![Dashboard messages](images/dashboard-3.png)
+![Dashboard profile](images/dashboard-4.png)
 ![Desktop view](images/desktopview.png)
 
 **Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
