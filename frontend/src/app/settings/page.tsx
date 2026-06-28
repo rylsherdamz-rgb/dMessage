@@ -33,16 +33,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [keyPresent, setKeyPresent] = useState(false);
-  const [pubKey, setPubKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Client-only: read persisted key state after mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setKeyPresent(hasLocalKey());
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPubKey(getStoredPublicKeyB64());
-  }, []);
+  const [keyPresent, setKeyPresent] = useState(() => hasLocalKey());
+  const [pubKey, setPubKey] = useState<string | null>(() => getStoredPublicKeyB64());
 
   useEffect(() => {
     // Seed the editable field from the on-chain profile once it loads.

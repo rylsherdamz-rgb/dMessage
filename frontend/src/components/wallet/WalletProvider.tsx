@@ -75,7 +75,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
 
     // Original Freighter auto-detect
-    sync();
+    (async () => {
+      await sync();
+    })();
     const w = new WatchWalletChanges(3000);
     watcher.current = w;
     w.watch(({ address: addr, error }) => {
