@@ -76,7 +76,6 @@ A world where:
 ![Dashboard contacts](images/dashboard-2.png)
 ![Dashboard messages](images/dashboard-3.png)
 ![Dashboard profile](images/dashboard-4.png)
-![UI screenshot 1](images/ui-1.png)
 ![UI screenshot 2](images/ui-2.png)
 ![UI screenshot 3](images/ui-3.png)
 ![UI screenshot 4](images/ui-4.png)
