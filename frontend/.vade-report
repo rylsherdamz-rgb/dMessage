@@ -1,0 +1,44 @@
+## Vercel Web Analytics Installation
+
+Successfully installed and configured Vercel Web Analytics for the dMessage project.
+
+### What Was Implemented
+
+1. **Fetched Latest Documentation**
+   - Retrieved up-to-date installation instructions from https://vercel.com/docs/analytics/quickstart
+   - Identified Next.js App Router as the framework being used
+
+2. **Installed Package**
+   - Added `@vercel/analytics@^2.0.1` to project dependencies
+   - Package installed via npm (the project's package manager)
+
+3. **Added Analytics Component**
+   - Imported `Analytics` from `@vercel/analytics/next` in `src/app/layout.tsx`
+   - Placed `<Analytics />` component in the root layout's body tag
+   - Followed Next.js App Router best practices from official documentation
+
+### Files Modified
+
+- **frontend/package.json** - Added @vercel/analytics dependency
+- **frontend/package-lock.json** - Updated with new package and its dependencies
+- **frontend/src/app/layout.tsx** - Added Analytics import and component
+
+### Implementation Details
+
+The Analytics component was added to the root layout file (`src/app/layout.tsx`) which is the recommended location for Next.js App Router projects. The component is placed at the end of the body tag, following the framework-specific instructions from the official Vercel documentation.
+
+The implementation:
+- Preserves all existing code structure
+- Does not interfere with existing components (Providers, ClientWalletProvider, UsernamePrompt)
+- Follows Next.js conventions for the App Router pattern
+
+### Verification
+
+- ✅ Build completed successfully with `npm run build`
+- ✅ No new linting errors introduced (existing pre-existing linting errors are unrelated to this change)
+- ✅ Package dependencies properly updated in package-lock.json
+- ✅ TypeScript compilation passed without errors
+
+### Next Steps
+
+When deployed to Vercel, the analytics will automatically start tracking page views and web vitals. No additional configuration is needed. The analytics data will be available in the Vercel dashboard under the Analytics tab for this project.

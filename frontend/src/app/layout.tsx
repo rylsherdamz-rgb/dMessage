@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { ClientWalletProvider } from "@/components/wallet/ClientWalletProvider";
 import { UsernamePrompt } from "@/components/wallet/UsernamePrompt";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
@@ -56,6 +57,7 @@ export default function RootLayout({
             <UsernamePrompt />
           </ClientWalletProvider>
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
