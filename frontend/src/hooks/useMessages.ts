@@ -68,5 +68,6 @@ export function useMessages(peerAddress: string | undefined) {
       return messages.sort((a, b) => a.timestamp - b.timestamp);
     },
     staleTime: 5_000,
+    refetchInterval: 6_000,
   });
 }
