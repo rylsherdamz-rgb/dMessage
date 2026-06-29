@@ -10,7 +10,6 @@ import { fetchPayload, getIpfsUrl } from '@/lib/ipfs';
 import type { MessagePayload } from '@/lib/ipfs';
 
 interface MessageBubbleProps {
-  sender: string;
   timestamp: number;
   content: string;
   isOwn: boolean;
@@ -20,7 +19,6 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({
-  sender,
   timestamp,
   content,
   isOwn,
@@ -36,11 +34,18 @@ export function MessageBubble({
   const isCid = content.startsWith('Qm') || content.startsWith('bafy');
   const [payload, setPayload] = useState<MessagePayload | null>(null);
   const [loadingPayload, setLoadingPayload] = useState(!!isCid);
+  const [payloadError, setPayloadError] = useState(false);
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!isCid) return;
     let cancelled = false;
-    fetchPayload(content).then((p) => { if (!cancelled) { setPayload(p); setLoadingPayload(false); } });
+    setPayloadError(false);
+    fetchPayload(content).then((p) => {
+      if (cancelled) return;
+      if (p) { setPayload(p); setLoadingPayload(false); }
+      else { setPayloadError(true); setLoadingPayload(false); }
+    });
     return () => { cancelled = true; };
   }, [content, isCid]);
 
@@ -71,6 +76,9 @@ export function MessageBubble({
         >
           {loadingPayload && (
             <Loader2 className="h-4 w-4 animate-spin text-[var(--text-faint)]" strokeWidth={2} />
+          )}
+          {payloadError && (
+            <p className="font-mono text-xs italic text-[var(--text-faint)]">Failed to load message</p>
           )}
           {!loadingPayload && displayText && (
             <p className="font-mono text-sm leading-relaxed break-words">{displayText}</p>

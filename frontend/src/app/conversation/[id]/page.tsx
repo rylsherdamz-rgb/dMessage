@@ -208,7 +208,6 @@ export default function ConversationPage() {
           {messages?.map((msg, i) => (
             <MessageBubble
               key={`${msg.timestamp}-${i}`}
-              sender={msg.sender}
               timestamp={msg.timestamp}
               content={msg.content}
               isOwn={msg.sender === address}

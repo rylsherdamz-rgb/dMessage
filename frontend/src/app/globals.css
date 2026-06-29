@@ -35,6 +35,7 @@
   --border-strong: oklch(68% 0.01 260);
 }
 
+:root {
   /* --- Accents --- */
   --accent: #00ff88;
   --accent-dim: #00cc6a;
