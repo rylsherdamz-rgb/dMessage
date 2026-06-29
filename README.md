@@ -82,6 +82,18 @@ A world where:
 ![UI screenshot 5](images/ui-5.png)
 ![UI screenshot 6](images/ui-6.png)
 
+### Proof of Users — On-Chain Activity
+
+Users registered and interacting via the deployed Soroban contracts on testnet:
+
+![User registry usage](images/proof_of_users/user_registry.png)
+![Social graph usage](images/proof_of_users/social_graph.png)
+![Message contract usage](images/proof_of_users/message_contract.png)
+
+### Vercel Analytics
+
+![Vercel analytics](images/vercel_analystics.png)
+
 **Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
 
 | Contract | Address | WASM Hash (SHA256) |
