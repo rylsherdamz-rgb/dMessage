@@ -1,8 +1,10 @@
 'use client';
 
+import { Check, CheckCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { useProfile } from '@/hooks/useProfile';
+import { relativeTime } from '@/lib/time';
 
 interface MessageBubbleProps {
   sender: string;
@@ -11,6 +13,7 @@ interface MessageBubbleProps {
   isOwn: boolean;
   index: number;
   senderAddress: string;
+  read?: boolean;
 }
 
 export function MessageBubble({
@@ -20,6 +23,7 @@ export function MessageBubble({
   isOwn,
   index,
   senderAddress,
+  read,
 }: MessageBubbleProps) {
   const { data: senderProfile } = useProfile(senderAddress);
   const displayName = senderProfile?.username
@@ -51,9 +55,14 @@ export function MessageBubble({
         >
           <p className="font-mono text-sm leading-relaxed break-words">{content}</p>
         </div>
-        <p className={`mt-1 font-mono text-[10px] text-[var(--text-faint)] ${isOwn ? 'text-right' : 'text-left'}`}>
-          {new Date(timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </p>
+        <div className={`mt-1 flex items-center gap-1 font-mono text-[10px] text-[var(--text-faint)] ${isOwn ? 'justify-end' : 'justify-start'}`}>
+          <span>{relativeTime(timestamp)}</span>
+          {isOwn && (
+            read
+              ? <CheckCheck className="h-3 w-3 text-[var(--accent)]" strokeWidth={2} />
+              : <Check className="h-3 w-3 text-[var(--text-faint)]" strokeWidth={2} />
+          )}
+        </div>
       </div>
     </motion.div>
   );

@@ -21,6 +21,19 @@
   /* --- Lines --- */
   --border: oklch(28% 0.008 260);
   --border-strong: oklch(40% 0.01 260);
+}
+
+.light {
+  --bg: oklch(96% 0.005 260);
+  --bg-surface: oklch(92% 0.006 260);
+  --bg-elevated: oklch(88% 0.006 260);
+  --bg-inset: oklch(94% 0.004 260);
+  --text: oklch(10% 0 0);
+  --text-muted: oklch(40% 0.01 260);
+  --text-faint: oklch(60% 0.01 260);
+  --border: oklch(78% 0.008 260);
+  --border-strong: oklch(68% 0.01 260);
+}
 
   /* --- Accents --- */
   --accent: #00ff88;

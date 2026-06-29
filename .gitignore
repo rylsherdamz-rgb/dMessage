@@ -29,3 +29,8 @@ tests/node_modules/
 # Agent context
 .remember/
 .vercel
+promotion/
+frontend/src/remotion/
+frontend/remotion.config.ts
+frontend/render.sh
+images/analytics.png

@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Send, ShieldCheck, X } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Send, ShieldCheck, X, Smile } from 'lucide-react';
 import { ChatShell } from '@/components/chat/ChatShell';
 import { ConnectGate } from '@/components/layout/ConnectGate';
 import { Nav } from '@/components/layout/Nav';
@@ -29,13 +29,38 @@ export default function ConversationPage() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [copiedAddress, setCopiedAddress] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const EMOJIS = ['😀','😂','❤️','🔥','👍','🎉','💀','🚀','💯','✨','👀','🙏','😢','🥳','💜','🌙','⚡','🫡'];
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (!sendError) return;
+    const t = setTimeout(() => setSendError(null), 6000);
+    return () => clearTimeout(t);
+  }, [sendError]);
+
+  const autoResize = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, []);
+
+  const handleCopyAddress = useCallback(async () => {
+    if (!peerAddress) return;
+    await navigator.clipboard.writeText(peerAddress);
+    setCopiedAddress(true);
+    setTimeout(() => setCopiedAddress(false), 1500);
+  }, [peerAddress]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
@@ -60,6 +85,10 @@ export default function ConversationPage() {
         );
       }
       setInput('');
+
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
 
       // The send tx needs a few seconds to be included in a ledger before the
       // new message is queryable. Refetch immediately (in case it's already in)
@@ -91,19 +120,32 @@ export default function ConversationPage() {
   return (
     <ChatShell activeId={peerAddress}>
       <div className="flex h-full flex-col">
-        <header className="flex items-center gap-3 border-b-2 border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3">
+        <header className="flex items-center gap-2 border-b-2 border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
           <button
             onClick={() => router.push('/dashboard')}
             aria-label="Back"
-            className="flex items-center text-[var(--text-muted)] transition-colors hover:text-[var(--accent)] md:hidden"
+            className="flex h-9 w-9 items-center justify-center text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
           >
             <ArrowLeft className="h-5 w-5" strokeWidth={2} />
           </button>
           <Avatar seed={peerAddress} size={40} online />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-mono text-sm font-black tracking-tight text-white">
-              {displayName}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="truncate font-mono text-sm font-black tracking-tight text-white">
+                {displayName}
+              </p>
+              <button
+                onClick={handleCopyAddress}
+                aria-label="Copy peer address"
+                className="shrink-0 text-[var(--text-faint)] transition-colors hover:text-[var(--accent)]"
+              >
+                {copiedAddress ? (
+                  <Check className="h-3.5 w-3.5 text-[var(--accent)]" strokeWidth={2} />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" strokeWidth={2} />
+                )}
+              </button>
+            </div>
             <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">
               <ShieldCheck className="h-3 w-3" strokeWidth={2} aria-hidden />
               End-to-end encrypted
@@ -124,7 +166,7 @@ export default function ConversationPage() {
 
         <div
           ref={scrollRef}
-          className="flex flex-1 flex-col gap-3 overflow-y-auto bg-grid p-4 sm:p-6"
+          className="flex flex-1 flex-col gap-2 overflow-y-auto bg-grid p-2 sm:gap-3 sm:p-6"
         >
           {isLoading && (
             <div className="flex items-center justify-center py-16">
@@ -148,6 +190,7 @@ export default function ConversationPage() {
               isOwn={msg.sender === address}
               index={i}
               senderAddress={msg.sender}
+              read={msg.read}
             />
           ))}
         </div>
@@ -158,7 +201,7 @@ export default function ConversationPage() {
           </div>
         )}
 
-        <div className="border-t-2 border-[var(--border-strong)] bg-[var(--bg-surface)] p-3 sm:p-4">
+        <div className="border-t-2 border-[var(--border-strong)] bg-[var(--bg-surface)] p-2 sm:p-4">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -166,13 +209,52 @@ export default function ConversationPage() {
             }}
             className="flex gap-3"
           >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type a message…"
-              disabled={sending}
-              className="brutal-input min-w-0 flex-1 bg-[var(--bg)] px-4 py-3 font-mono text-sm text-white placeholder-[var(--text-muted)] disabled:opacity-40"
-            />
+            <div className="relative flex-1">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  autoResize();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder="Type a message… (Shift+Enter for new line)"
+                disabled={sending}
+                rows={1}
+                className="brutal-input min-w-0 w-full resize-none bg-[var(--bg)] px-4 py-3 pr-10 font-mono text-sm text-white placeholder-[var(--text-muted)] disabled:opacity-40"
+              />
+              <button
+                type="button"
+                onClick={() => setShowEmoji((s) => !s)}
+                aria-label="Emoji picker"
+                className="absolute bottom-2 right-2 text-[var(--text-faint)] transition-colors hover:text-[var(--accent)]"
+              >
+                <Smile className="h-4 w-4" strokeWidth={2} />
+              </button>
+              {showEmoji && (
+                <div className="absolute bottom-full left-0 z-50 mb-2 grid w-max grid-cols-6 gap-1 border-2 border-[var(--border)] bg-[var(--bg-surface)] p-2">
+                  {EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => {
+                        setInput((prev) => prev + emoji);
+                        autoResize();
+                        textareaRef.current?.focus();
+                      }}
+                      className="flex h-8 w-8 items-center justify-center text-lg transition-colors hover:bg-[var(--bg-elevated)]"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               type="submit"
               disabled={sending || !input.trim()}

@@ -3,6 +3,7 @@ import { Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
+import { ThemeProvider } from "@/lib/theme";
 import { ClientWalletProvider } from "@/components/wallet/ClientWalletProvider";
 import { UsernamePrompt } from "@/components/wallet/UsernamePrompt";
 
@@ -51,12 +52,14 @@ export default function RootLayout({
           />
         </div>
 
-        <Providers>
-          <ClientWalletProvider>
-            {children}
-            <UsernamePrompt />
-          </ClientWalletProvider>
-        </Providers>
+        <ThemeProvider>
+          <Providers>
+            <ClientWalletProvider>
+              {children}
+              <UsernamePrompt />
+            </ClientWalletProvider>
+          </Providers>
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

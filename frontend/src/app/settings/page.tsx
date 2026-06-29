@@ -10,6 +10,8 @@ import {
   CircleUserRound,
   RefreshCw,
   Network,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Nav } from '@/components/layout/Nav';
 import { ConnectGate } from '@/components/layout/ConnectGate';
@@ -24,10 +26,12 @@ import {
 } from '@/lib/keystore';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { registerUser, validateUsername } from '@/lib/registry';
+import { useTheme } from '@/lib/theme';
 
 export default function SettingsPage() {
   const { isConnected, address, disconnect, signTransaction } = useWallet();
   const { data: profile, isLoading, refetch } = useProfile(address);
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const [username, setUsername] = useState('');
   const [saving, setSaving] = useState(false);
@@ -192,6 +196,30 @@ export default function SettingsPage() {
               Private key stays in this browser only. Rotating invalidates your ability to decrypt
               older messages — re-register afterward to publish the new public key.
             </p>
+          </section>
+
+          {/* Appearance */}
+          <section className="brutal-static bg-[var(--bg-surface)] p-6">
+            <div className="mb-5 flex items-center gap-2 text-[var(--amber)]">
+              {theme === 'light' ? <Sun className="h-4 w-4" strokeWidth={2} aria-hidden /> : <Moon className="h-4 w-4" strokeWidth={2} aria-hidden />}
+              <h2 className="font-mono text-xs uppercase tracking-[0.15em]">Appearance</h2>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-mono text-sm text-white">Theme</p>
+                <p className="mt-1 font-mono text-[11px] leading-relaxed text-[var(--text-faint)]">
+                  {theme === 'light' ? 'Light mode — easier on the eyes during the day' : 'Dark mode — easier on the eyes at night'}
+                </p>
+              </div>
+              <button
+                onClick={toggleTheme}
+                className="brutal flex h-10 w-10 items-center justify-center bg-[var(--bg)] text-[var(--text-muted)]"
+                aria-label="Toggle theme"
+              >
+                {theme === 'light' ? <Moon className="h-4 w-4" strokeWidth={2} /> : <Sun className="h-4 w-4" strokeWidth={2} />}
+              </button>
+            </div>
           </section>
 
           {/* Account */}
