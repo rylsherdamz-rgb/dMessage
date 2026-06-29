@@ -37,6 +37,21 @@ A world where:
 - **Dark Theme**: Modern UI with Tailwind CSS v4, custom OKLCH color system
 - **3D Landing Page**: Interactive hero scene with Three.js and Framer Motion
 
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Blockchain | Stellar Soroban (Rust smart contracts) |
+| Frontend | Next.js 16, React 19, TypeScript 5 |
+| Styling | Tailwind CSS v4, OKLCH color system |
+| 3D Graphics | Three.js, React Three Fiber, Drei |
+| Animation | Framer Motion 12 |
+| State/Data | TanStack React Query 5 |
+| Wallet | Stellar Wallet Kit 2 |
+| Crypto | Web Crypto API (ECDH P-256, AES-GCM-256) |
+| Storage | IPFS (pinning service + gateway) |
+| CI/CD | GitHub Actions (Soroban deploy + Vercel) |
+
 ## Architecture
 
 ```
@@ -63,7 +78,7 @@ A world where:
 | **SocialGraph** | Creates deterministic conversation references, maintains per-user conversation lists |
 | **MessageContract** | Inbox-per-recipient message storage with paginated retrieval and read receipts |
 
-## Contract Details
+### Contract Flow
 
 ![Account creation flow](images/account.png)
 ![Message sending flow](images/messages.png)
@@ -71,20 +86,15 @@ A world where:
 ![Test suite results](images/test.png)
 ![User registry contract](images/user_registry.png)
 
-### UI Screenshots
+## Smart Contract API
 
-![Landing page](images/landing.png)
-![Dashboard](images/dashboard-1.png)
-![Dashboard contacts](images/dashboard-2.png)
-![Dashboard messages](images/dashboard-3.png)
-![Dashboard profile](images/dashboard-4.png)
-![UI screenshot 2](images/ui-2.png)
-![UI screenshot 3](images/ui-3.png)
-![UI screenshot 4](images/ui-4.png)
-![UI screenshot 5](images/ui-5.png)
-![UI screenshot 6](images/ui-6.png)
+### UserRegistry
+- `register_user(username, encryption_pubkey, metadata_ipfs)` — Register or update your profile
+- `get_user(addr)` — Get a user's profile by their Stellar address
 
-### Proof of Users — On-Chain Activity
+### SocialGraph
+- `ensure_conversation(user_a, user_b)` — Create or get a deterministic conversation between two users
+- `get_user_conversations(user_addr)` — Get all conversation references for a user
 
 Users registered and interacting via the deployed Soroban contracts on testnet:
 
@@ -164,6 +174,9 @@ sha256sum contracts/target/wasm32v1-none/release/*.wasm
 The deployment manifest with full metadata is at [`deployment.json`](deployment.json).
 
 *Mainnet addresses to be announced post-audit.*
+### MessageContract
+- `send_message(conversation_id, content_hash, content_type)` — Store a message hash in a conversation
+- `get_messages(conversation_id, page, page_size)` — Paginated message retrieval
 
 ## Getting Started
 
@@ -211,21 +224,105 @@ cd frontend && npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Smart Contract API
+## UI Screenshots
 
-### UserRegistry
-- `register_user(username, encryption_pubkey, metadata_ipfs)` — Register or update your profile
-- `get_user(addr)` — Get a user's profile by their Stellar address
+![Landing page](images/landing.png)
+![Dashboard](images/dashboard-1.png)
+![Dashboard contacts](images/dashboard-2.png)
+![Dashboard messages](images/dashboard-3.png)
+![Dashboard profile](images/dashboard-4.png)
+![UI screenshot 2](images/ui-2.png)
+![UI screenshot 3](images/ui-3.png)
+![UI screenshot 4](images/ui-4.png)
+![UI screenshot 5](images/ui-5.png)
+![UI screenshot 6](images/ui-6.png)
 
-### SocialGraph
-- `ensure_conversation(user_a, user_b)` — Create or get a deterministic conversation between two users
-- `get_user_conversations(user_addr)` — Get all conversation references for a user
+### Proof of Users — On-Chain Activity
 
 ### MessageContract
 - `send_message(sender, recipient, content)` — Store a message in the recipient's inbox
 - `get_messages(user, page, page_size)` — Paginated inbox retrieval
 - `mark_as_read(caller, index)` — Mark a message as read
 - `my_message_count(user)` — Get the total message count for a user
+Users registered and interacting via the deployed Soroban contracts on testnet:
+
+![User registry usage](images/proof_of_users/user_registry.png)
+![Social graph usage](images/proof_of_users/social_graph.png)
+![Message contract usage](images/proof_of_users/message_contract.png)
+
+### Vercel Analytics
+
+![Vercel analytics](images/vercel_analystics.png)
+
+### User Feedback
+
+dMessage was user-tested with 20 participants who provided feedback via Google Form. The raw responses and a summary of requested changes are linked below.
+
+| Resource | Link |
+|----------|------|
+| Feedback Form (submit) | [Google Form](https://docs.google.com/forms/d/e/1FAIpQLSc7hyuuQ1cFdldSA9DytbcR9kwo9EXT2DLPiszzqrrfrfwKVQ/viewform) |
+| Response Spreadsheet | [Google Sheets](https://docs.google.com/spreadsheets/d/1Mif_PoLEXyziO1vClWaE9RXGxwJ5rDX-RVXyJ128YbA/edit?resourcekey=&gid=213717360#gid=213717360) |
+
+**Top requested improvements (ordered by frequency):**
+
+1. **QR code integration** — scanner for wallet addresses, shareable QR per profile/chat
+2. **Onboarding improvements** — guided tour, better first-run experience, feature highlights
+3. **Search** — filter conversations and contacts
+4. **Dark mode** — theme toggle for night-time use
+5. **Read receipts** — delivery indicators and read status on messages
+6. **Notification customization** — per-contact sounds, more variety
+7. **Group chats** — multi-party encrypted conversations
+8. **Emoji picker** — inline emoji selection while typing
+9. **File sharing** — send images and files beyond text
+10. **Disappearing messages** — auto-delete after viewing
+
+Full details available in the [response spreadsheet](https://docs.google.com/spreadsheets/d/1Mif_PoLEXyziO1vClWaE9RXGxwJ5rDX-RVXyJ128YbA/edit?resourcekey=&gid=213717360#gid=213717360).
+
+- **User Feedback Folder:** `user_feedback/` ([Excel export](user_feedback/dMessage%20FeedBack%20%28Responses%29.xlsx))
+
+**Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
+
+## Contract Deployment
+
+| Contract | Address | WASM Hash (SHA256) |
+|----------|---------|-------------------|
+| UserRegistry | `CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` |
+| SocialGraph | `CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7` | `2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c` |
+| MessageContract | `CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK` | `8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e` |
+
+Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7) · [Messages](https://stellar.expert/explorer/testnet/contract/CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK)
+
+All contracts were deployed by account [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM) — view all deployment transactions there.
+
+### Source Verification
+
+Anyone can verify these contracts by rebuilding from source:
+
+```bash
+# 1. Clone the repo at the deployment commit
+git checkout 3ec3073
+
+# 2. Build
+stellar contract build --contract-dir contracts/user_registry
+stellar contract build --contract-dir contracts/social_graph
+stellar contract build --contract-dir contracts/messages
+
+# 3. Compare SHA256 hashes
+sha256sum contracts/target/wasm32v1-none/release/*.wasm
+# The output should match the WASM hashes in the table above
+```
+
+The deployment manifest with full metadata is at [`deployment.json`](deployment.json).
+
+*Mainnet addresses to be announced post-audit.*
+
+## Security
+
+- All smart contracts undergo third-party audit before mainnet deployment
+- Client-side E2EE using standards-compliant Web Crypto API (ECDH + AES-GCM)
+- Bug bounty program via Immunefi (post-launch)
+- Regular dependency updates with Dependabot
+- Formal verification of critical contract functions (in progress)
 
 ## Future Scope
 
@@ -397,6 +494,7 @@ cd contracts && cargo test
 - **Discord**: [Join our server](https://discord.gg/dmessage) *(coming soon)*
 
 ### License
+## License
 
 MIT
 
