@@ -58,8 +58,8 @@ A world where:
 | Contract | Description |
 |----------|-------------|
 | **UserRegistry** | Stores user profiles: usernames, ECDH public keys, IPFS metadata links |
-| **SocialGraph** | Creates deterministic conversation IDs (SHA-256 of sorted addresses), maintains per-user conversation lists |
-| **MessageContract** | Stores message hashes with ordering, supports paginated retrieval per conversation |
+| **SocialGraph** | Creates deterministic conversation references, maintains per-user conversation lists |
+| **MessageContract** | Inbox-per-recipient message storage with paginated retrieval and read receipts |
 
 ## Contract Details
 
@@ -109,11 +109,12 @@ View the dMessage pitch deck:
 |----------|---------|-------------------|
 | UserRegistry | `CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` |
 | SocialGraph | `CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7` | `2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c` |
-| MessageContract | `CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK` | `8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e` |
+| MessageContract (v2 — current) | `CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7` | `98221de14f435ac68060c3e7494da96819563467ed46ce78ce8d1e618e1bb51d` |
+| MessageContract (v1 — deprecated) | `CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK` | `8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e` |
 
-Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7) · [Messages](https://stellar.expert/explorer/testnet/contract/CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK)
+Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7) · [Messages v2](https://stellar.expert/explorer/testnet/contract/CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7) · [Messages v1 (deprecated)](https://stellar.expert/explorer/testnet/contract/CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK)
 
-All contracts were deployed by account [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM) — view all deployment transactions there.
+All contracts were deployed by account [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM) (v1) and [`GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH`](https://stellar.expert/explorer/testnet/account/GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH) (v2) — view all deployment transactions there.
 
 ### Source Verification
 
@@ -194,8 +195,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `get_user_conversations(user_addr)` — Get all conversation references for a user
 
 ### MessageContract
-- `send_message(conversation_id, content_hash, content_type)` — Store a message hash in a conversation
-- `get_messages(conversation_id, page, page_size)` — Paginated message retrieval
+- `send_message(sender, recipient, content)` — Store a message in the recipient's inbox
+- `get_messages(user, page, page_size)` — Paginated inbox retrieval
+- `mark_as_read(caller, index)` — Mark a message as read
+- `my_message_count(user)` — Get the total message count for a user
 
 ## Future Scope
 
