@@ -118,7 +118,7 @@ dMessage was user-tested with 20 participants who provided feedback via Google F
 
 Full details available in the [response spreadsheet](https://docs.google.com/spreadsheets/d/1Mif_PoLEXyziO1vClWaE9RXGxwJ5rDX-RVXyJ128YbA/edit?resourcekey=&gid=213717360#gid=213717360).
 
-- **User Feedback Folder:** `user_feedback/` (Excel exports added here)
+- **User Feedback Folder:** `user_feedback/` ([Excel export](user_feedback/dMessage%20FeedBack%20%28Responses%29.xlsx))
 
 **Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
 
