@@ -35,6 +35,21 @@ A world where:
 - **Dark Theme**: Modern UI with Tailwind CSS v4, custom OKLCH color system
 - **3D Landing Page**: Interactive hero scene with Three.js and Framer Motion
 
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Blockchain | Stellar Soroban (Rust smart contracts) |
+| Frontend | Next.js 16, React 19, TypeScript 5 |
+| Styling | Tailwind CSS v4, OKLCH color system |
+| 3D Graphics | Three.js, React Three Fiber, Drei |
+| Animation | Framer Motion 12 |
+| State/Data | TanStack React Query 5 |
+| Wallet | Stellar Wallet Kit 2 |
+| Crypto | Web Crypto API (ECDH P-256, AES-GCM-256) |
+| Storage | IPFS (pinning service + gateway) |
+| CI/CD | GitHub Actions (Soroban deploy + Vercel) |
+
 ## Architecture
 
 ```
@@ -61,7 +76,7 @@ A world where:
 | **SocialGraph** | Creates deterministic conversation IDs (SHA-256 of sorted addresses), maintains per-user conversation lists |
 | **MessageContract** | Stores message hashes with ordering, supports paginated retrieval per conversation |
 
-## Contract Details
+### Contract Flow
 
 ![Account creation flow](images/account.png)
 ![Message sending flow](images/messages.png)
@@ -69,7 +84,67 @@ A world where:
 ![Test suite results](images/test.png)
 ![User registry contract](images/user_registry.png)
 
-### UI Screenshots
+## Smart Contract API
+
+### UserRegistry
+- `register_user(username, encryption_pubkey, metadata_ipfs)` — Register or update your profile
+- `get_user(addr)` — Get a user's profile by their Stellar address
+
+### SocialGraph
+- `ensure_conversation(user_a, user_b)` — Create or get a deterministic conversation between two users
+- `get_user_conversations(user_addr)` — Get all conversation references for a user
+
+### MessageContract
+- `send_message(conversation_id, content_hash, content_type)` — Store a message hash in a conversation
+- `get_messages(conversation_id, page, page_size)` — Paginated message retrieval
+
+## Getting Started
+
+### Prerequisites
+- Node.js 20+
+- Rust 1.75+ (with `wasm32-unknown-unknown` target)
+- Stellar Freighter browser extension (for wallet connection)
+
+### Setup
+
+```bash
+# Clone and install
+git clone https://github.com/rylsherdamz-rgb/dMessage.git
+cd dMessage
+
+# Install frontend dependencies
+cd frontend && npm install && cd ..
+
+# Build smart contracts
+cd contracts/user_registry && cargo build --release && cd ../..
+cd contracts/social_graph && cargo build --release && cd ../..
+cd contracts/messages && cargo build --release && cd ../..
+```
+
+### Environment
+
+Copy `.env.example` to `.env.local` and fill in your values:
+
+```bash
+cp frontend/.env.example frontend/.env.local
+```
+
+Required variables:
+- `NEXT_PUBLIC_SOROBAN_RPC` — Soroban RPC endpoint (defaults to Stellar Testnet)
+- `NEXT_PUBLIC_CONTRACT_USER_REGISTRY` — Deployed UserRegistry contract ID
+- `NEXT_PUBLIC_CONTRACT_SOCIAL_GRAPH` — Deployed SocialGraph contract ID
+- `NEXT_PUBLIC_CONTRACT_MESSAGES` — Deployed MessageContract contract ID
+- `NEXT_PUBLIC_IPFS_PIN_API` — IPFS pinning service API endpoint
+
+### Run Development Server
+
+```bash
+cd frontend && npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## UI Screenshots
 
 ![Landing page](images/landing.png)
 ![Dashboard](images/dashboard-1.png)
@@ -122,6 +197,8 @@ Full details available in the [response spreadsheet](https://docs.google.com/spr
 
 **Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
 
+## Contract Deployment
+
 | Contract | Address | WASM Hash (SHA256) |
 |----------|---------|-------------------|
 | UserRegistry | `CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` |
@@ -154,65 +231,13 @@ The deployment manifest with full metadata is at [`deployment.json`](deployment.
 
 *Mainnet addresses to be announced post-audit.*
 
-## Getting Started
+## Security
 
-### Prerequisites
-- Node.js 20+
-- Rust 1.75+ (with `wasm32-unknown-unknown` target)
-- Stellar Freighter browser extension (for wallet connection)
-
-### Setup
-
-```bash
-# Clone and install
-git clone https://github.com/rylsherdamz-rgb/dMessage.git
-cd dMessage
-
-# Install frontend dependencies
-cd frontend && npm install && cd ..
-
-# Build smart contracts
-cd contracts/user_registry && cargo build --release && cd ../..
-cd contracts/social_graph && cargo build --release && cd ../..
-cd contracts/messages && cargo build --release && cd ../..
-```
-
-### Environment
-
-Copy `.env.example` to `.env.local` and fill in your values:
-
-```bash
-cp frontend/.env.example frontend/.env.local
-```
-
-Required variables:
-- `NEXT_PUBLIC_SOROBAN_RPC` — Soroban RPC endpoint (defaults to Stellar Testnet)
-- `NEXT_PUBLIC_CONTRACT_USER_REGISTRY` — Deployed UserRegistry contract ID
-- `NEXT_PUBLIC_CONTRACT_SOCIAL_GRAPH` — Deployed SocialGraph contract ID
-- `NEXT_PUBLIC_CONTRACT_MESSAGES` — Deployed MessageContract contract ID
-- `NEXT_PUBLIC_IPFS_PIN_API` — IPFS pinning service API endpoint
-
-### Run Development Server
-
-```bash
-cd frontend && npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Smart Contract API
-
-### UserRegistry
-- `register_user(username, encryption_pubkey, metadata_ipfs)` — Register or update your profile
-- `get_user(addr)` — Get a user's profile by their Stellar address
-
-### SocialGraph
-- `ensure_conversation(user_a, user_b)` — Create or get a deterministic conversation between two users
-- `get_user_conversations(user_addr)` — Get all conversation references for a user
-
-### MessageContract
-- `send_message(conversation_id, content_hash, content_type)` — Store a message hash in a conversation
-- `get_messages(conversation_id, page, page_size)` — Paginated message retrieval
+- All smart contracts undergo third-party audit before mainnet deployment
+- Client-side E2EE using standards-compliant Web Crypto API (ECDH + AES-GCM)
+- Bug bounty program via Immunefi (post-launch)
+- Regular dependency updates with Dependabot
+- Formal verification of critical contract functions (in progress)
 
 ## Future Scope
 
@@ -227,29 +252,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - **Accessibility**: WCAG 2.1 AA compliance with full screen reader support
 - **Performance**: IPFS Cluster pinning and CDN gateways for media delivery
 - **Mobile**: React Native app with shared crypto/IPFS primitives
-
-## Security
-
-- All smart contracts undergo third-party audit before mainnet deployment
-- Client-side E2EE using standards-compliant Web Crypto API (ECDH + AES-GCM)
-- Bug bounty program via Immunefi (post-launch)
-- Regular dependency updates with Dependabot
-- Formal verification of critical contract functions (in progress)
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Blockchain | Stellar Soroban (Rust smart contracts) |
-| Frontend | Next.js 16, React 19, TypeScript 5 |
-| Styling | Tailwind CSS v4, OKLCH color system |
-| 3D Graphics | Three.js, React Three Fiber, Drei |
-| Animation | Framer Motion 12 |
-| State/Data | TanStack React Query 5 |
-| Wallet | Stellar Wallet Kit 2 |
-| Crypto | Web Crypto API (ECDH P-256, AES-GCM-256) |
-| Storage | IPFS (pinning service + gateway) |
-| CI/CD | GitHub Actions (Soroban deploy + Vercel) |
 
 ## License
 
