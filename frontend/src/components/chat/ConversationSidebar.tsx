@@ -71,7 +71,7 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
       <div className="flex items-center justify-between border-b-2 border-[var(--border-strong)] px-4 py-4">
         <div className="flex items-center gap-2">
           <span className="status-dot bg-[var(--accent)] text-[var(--accent)]" />
-          <h2 className="font-mono text-xs font-black uppercase tracking-[0.2em] text-white">
+          <h2 className="font-mono text-xs font-black uppercase tracking-[0.2em] text-[var(--text)]">
             Messages
           </h2>
         </div>
@@ -112,7 +112,7 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
                 if (createError) setCreateError(null);
               }}
               placeholder="G… address"
-              className="brutal-input min-w-0 flex-1 bg-[var(--bg)] px-3 py-2 font-mono text-xs text-white"
+              className="brutal-input min-w-0 flex-1 bg-[var(--bg)] px-3 py-2 font-mono text-xs text-[var(--text)]"
             />
             <button
               type="submit"
@@ -138,7 +138,7 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Filter conversations…  (⌘K)"
-            className="w-full bg-[var(--bg)] py-2.5 pl-9 pr-3 font-mono text-xs text-white outline-none placeholder-[var(--text-faint)]"
+            className="w-full bg-[var(--bg)] py-2.5 pl-9 pr-3 font-mono text-xs text-[var(--text)] outline-none placeholder-[var(--text-faint)]"
           />
         </div>
       )}
@@ -204,7 +204,7 @@ function PeerName({ address, lastUpdated }: { address: string; lastUpdated: numb
   const { data: profile } = useProfile(address);
   return (
     <div className="min-w-0 flex-1">
-      <p className="truncate font-mono text-sm font-bold tracking-tight text-white">
+      <p className="truncate font-mono text-sm font-bold tracking-tight text-[var(--text)]">
         {profile?.username ? `@${profile.username}` : `${address.slice(0, 6)}…${address.slice(-4)}`}
       </p>
       <p className="truncate font-mono text-[10px] text-[var(--text-muted)]">

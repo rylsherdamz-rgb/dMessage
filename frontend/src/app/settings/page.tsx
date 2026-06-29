@@ -16,6 +16,7 @@ import {
 import { Nav } from '@/components/layout/Nav';
 import { ConnectGate } from '@/components/layout/ConnectGate';
 import { Avatar } from '@/components/ui/Avatar';
+import { QrCode } from '@/components/ui/QrCode';
 import { Spinner } from '@/components/ui/Spinner';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { useProfile } from '@/hooks/useProfile';
@@ -126,7 +127,7 @@ export default function SettingsPage() {
                 <div className="mb-5 flex items-center gap-4">
                   <Avatar seed={address ?? 'anon'} size={56} online />
                   <div className="min-w-0">
-                    <p className="truncate font-mono text-sm font-black tracking-tight text-white">
+                    <p className="truncate font-mono text-sm font-black tracking-tight text-[var(--text)]">
                       {profile?.username ? `@${profile.username}` : 'Unregistered'}
                     </p>
                     <p className="truncate font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
@@ -142,7 +143,7 @@ export default function SettingsPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="satoshi"
-                    className="brutal-input flex-1 bg-[var(--bg)] px-4 py-3 font-mono text-sm text-white"
+                    className="brutal-input flex-1 bg-[var(--bg)] px-4 py-3 font-mono text-sm text-[var(--text)]"
                   />
                   <button
                     onClick={handleRegister}
@@ -174,7 +175,7 @@ export default function SettingsPage() {
               ) : (
                 <ShieldCheck className="h-4 w-4 text-[var(--text-faint)]" strokeWidth={2} aria-hidden />
               )}
-              <span className="font-mono text-sm text-white">
+              <span className="font-mono text-sm text-[var(--text)]">
                 {keyPresent ? 'Local keypair active' : 'No local keypair'}
               </span>
             </div>
@@ -187,7 +188,7 @@ export default function SettingsPage() {
 
             <button
               onClick={generateKeys}
-              className="brutal mt-4 flex items-center gap-2 bg-[var(--bg)] px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-white"
+              className="brutal mt-4 flex items-center gap-2 bg-[var(--bg)] px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[var(--text)]"
             >
               <RefreshCw className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
               {keyPresent ? 'Rotate Keys' : 'Generate Keys'}
@@ -207,7 +208,7 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-mono text-sm text-white">Theme</p>
+                <p className="font-mono text-sm text-[var(--text)]">Theme</p>
                 <p className="mt-1 font-mono text-[11px] leading-relaxed text-[var(--text-faint)]">
                   {theme === 'light' ? 'Light mode — easier on the eyes during the day' : 'Dark mode — easier on the eyes at night'}
                 </p>
@@ -235,7 +236,7 @@ export default function SettingsPage() {
                   Address
                 </span>
                 <div className="mt-1.5 flex items-center gap-3">
-                  <code className="font-mono text-sm text-white">{truncated}</code>
+                  <code className="font-mono text-sm text-[var(--text)]">{truncated}</code>
                   <button
                     onClick={copyAddress}
                     aria-label="Copy address"
@@ -250,11 +251,20 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              {address && (
+                <div>
+                  <span className="mb-3 block font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                    Share your address
+                  </span>
+                  <QrCode data={address} size={160} />
+                </div>
+              )}
+
               <div>
                 <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">
                   Network
                 </span>
-                <p className="mt-1.5 flex items-center gap-2 font-mono text-sm text-white">
+                <p className="mt-1.5 flex items-center gap-2 font-mono text-sm text-[var(--text)]">
                   <span className="status-dot bg-[var(--accent)] text-[var(--accent)]" />
                   Stellar Testnet
                 </p>
