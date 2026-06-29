@@ -1,5 +1,4 @@
 import { rpc, Networks } from 'stellar-sdk';
-import { CONTRACT_IDS as FALLBACK_IDS } from './contract-ids';
 
 const RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC ?? 'https://soroban-testnet.stellar.org';
 
@@ -13,9 +12,9 @@ export function getSorobanServer(): rpc.Server {
 }
 
 export const CONTRACT_IDS = {
-  userRegistry: process.env.NEXT_PUBLIC_CONTRACT_USER_REGISTRY || FALLBACK_IDS.userRegistry,
-  socialGraph: process.env.NEXT_PUBLIC_CONTRACT_SOCIAL_GRAPH || FALLBACK_IDS.socialGraph,
-  messages: process.env.NEXT_PUBLIC_CONTRACT_MESSAGES || FALLBACK_IDS.messages,
+  userRegistry: 'CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA',
+  socialGraph: 'CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7',
+  messages: 'CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7',
 } as const;
 
 export const NETWORK_PASSPHRASE = Networks.TESTNET;

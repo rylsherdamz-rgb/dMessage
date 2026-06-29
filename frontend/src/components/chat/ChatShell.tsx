@@ -21,13 +21,19 @@ export function ChatShell({
       <Nav />
       <div className="flex flex-1 overflow-hidden">
         <aside
-          className={`w-full flex-col border-r-2 border-[var(--border-strong)] md:flex md:w-80 lg:w-96 ${
+          className={`w-full flex-none flex-col border-r-2 border-[var(--border-strong)] transition-all duration-200 md:flex md:w-80 lg:w-96 ${
             activeId ? 'hidden md:flex' : 'flex'
           }`}
         >
-          <ConversationSidebar activeId={activeId} />
+          <div className="flex h-full flex-col overflow-hidden">
+            <ConversationSidebar activeId={activeId} />
+          </div>
         </aside>
-        <main className={`flex-1 flex-col ${activeId ? 'flex' : 'hidden md:flex'}`}>
+        <main
+          className={`min-w-0 flex-1 flex-col transition-all duration-200 ${
+            activeId ? 'flex' : 'hidden md:flex'
+          }`}
+        >
           {children}
         </main>
       </div>

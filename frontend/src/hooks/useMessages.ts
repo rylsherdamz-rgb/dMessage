@@ -19,7 +19,6 @@ interface RawInboxMessage {
   read: boolean;
 }
 
-/** React Query key for a conversation thread; exported so callers can invalidate. */
 export function messagesQueryKey(address?: string | null, peerAddress?: string) {
   return ['messages-thread', address ?? null, peerAddress ?? null] as const;
 }
@@ -46,18 +45,6 @@ async function fetchInbox(
   }
 }
 
-/**
- * Loads a conversation thread between the connected user and `peerAddress`.
- *
- * The messages contract is an inbox model keyed by recipient: a message I send
- * to the peer lands in the PEER's inbox, and a message the peer sends me lands
- * in MY inbox. So a full two-sided thread requires reading both inboxes:
- *   - my inbox, keeping messages whose sender is the peer   (peer -> me)
- *   - peer's inbox, keeping messages whose sender is me      (me -> peer)
- * The two halves are merged and sorted by timestamp.
- *
- * With no `peerAddress`, returns the connected user's full inbox.
- */
 export function useMessages(peerAddress: string | undefined) {
   const { address } = useWallet();
 
@@ -82,5 +69,6 @@ export function useMessages(peerAddress: string | undefined) {
       return [...received, ...sent].sort((a, b) => a.timestamp - b.timestamp);
     },
     staleTime: 5_000,
+    refetchInterval: 6_000,
   });
 }
