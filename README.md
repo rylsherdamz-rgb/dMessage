@@ -96,6 +96,13 @@ Users registered and interacting via the deployed Soroban contracts on testnet:
 
 **Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
 
+### Presentation
+
+View the dMessage pitch deck:
+
+- **Interactive:** [Gamma Presentation](https://gamma.app/docs/dMessage-dq4tl7fbm2p9cxk?mode=doc)
+- **PDF:** [`ppt/dMessage.pdf`](ppt/dMessage.pdf)
+
 | Contract | Address | WASM Hash (SHA256) |
 |----------|---------|-------------------|
 | UserRegistry | `CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` |
