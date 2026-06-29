@@ -39,3 +39,11 @@ export async function computeConversationId(a: string, b: string): Promise<Uint8
   cache.set(cacheKey, hash);
   return hash;
 }
+
+/** Debug helper — logs the hex conversation ID for the given address pair */
+export async function debugConvId(a: string, b: string): Promise<string> {
+  const id = await computeConversationId(a, b);
+  const hex = Array.from(id).map(b => b.toString(16).padStart(2, '0')).join('');
+  console.log(`[conv] conversationId(${a.slice(0,8)}…, ${b.slice(0,8)}…) = ${hex}`);
+  return hex;
+}

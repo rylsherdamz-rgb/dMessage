@@ -41,7 +41,8 @@ async function fetchConversation(
       content: new TextDecoder().decode(new Uint8Array(m.content_hash)),
       content_type: m.content_type,
     }));
-  } catch {
+  } catch (e) {
+    console.warn('[fetchConversation] error:', e);
     return [];
   }
 }
@@ -55,9 +56,13 @@ export function useMessages(peerAddress: string | undefined) {
     queryFn: async () => {
       if (!address || !CONTRACT_IDS.messages) return [];
 
-      if (!peerAddress) return [];
+      if (!peerAddress) {
+        console.log('[useMessages] no peerAddress, returning []');
+        return [];
+      }
 
       const convId = await computeConversationId(address, peerAddress);
+      console.log('[useMessages] fetching conversation:', convId);
       const messages = await fetchConversation(convId, address);
 
       return messages.sort((a, b) => a.timestamp - b.timestamp);
