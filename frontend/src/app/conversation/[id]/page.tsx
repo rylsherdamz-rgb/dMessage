@@ -91,7 +91,8 @@ export default function ConversationPage() {
       }
       const msg = `[file:${result.cid}:${file.name}:${file.size}]`;
       await sendMessage(msg);
-    } catch {
+    } catch (err) {
+      console.error('[ConversationPage] file upload error:', err);
       setSendError('File upload failed');
     } finally {
       setUploading(false);
