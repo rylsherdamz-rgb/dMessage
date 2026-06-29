@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { File, Download, Loader2 } from 'lucide-react';
+import { Check, CheckCheck, File, Download, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { useProfile } from '@/hooks/useProfile';
@@ -15,6 +15,7 @@ interface MessageBubbleProps {
   isOwn: boolean;
   index: number;
   senderAddress: string;
+  read?: boolean;
 }
 
 export function MessageBubble({
@@ -23,6 +24,7 @@ export function MessageBubble({
   isOwn,
   index,
   senderAddress,
+  read,
 }: MessageBubbleProps) {
   const { data: senderProfile } = useProfile(senderAddress);
   const displayName = senderProfile?.username
@@ -100,8 +102,13 @@ export function MessageBubble({
             </div>
           )}
         </div>
-        <div className={`mt-1 font-mono text-[10px] text-[var(--text-faint)] ${isOwn ? 'text-right' : 'text-left'}`}>
+        <div className={`mt-1 flex items-center gap-1 font-mono text-[10px] text-[var(--text-faint)] ${isOwn ? 'justify-end' : 'justify-start'}`}>
           <span>{relativeTime(timestamp)}</span>
+          {isOwn && (
+            read
+              ? <CheckCheck className="h-3 w-3 text-[var(--accent)]" strokeWidth={2} />
+              : <Check className="h-3 w-3 text-[var(--text-faint)]" strokeWidth={2} />
+          )}
         </div>
       </div>
     </motion.div>

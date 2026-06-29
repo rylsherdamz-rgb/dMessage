@@ -4,45 +4,43 @@ import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { readContract, arg } from '@/lib/soroban';
-import { computeConversationId } from '@/lib/conv';
 
 export interface MessageData {
   sender: string;
   timestamp: number;
   content: string;
-  content_type: number;
+  read: boolean;
 }
 
-interface RawMessage {
+interface RawInboxMessage {
   sender: string;
+  content: Uint8Array;
   timestamp: bigint | number;
-  content_hash: number[];
-  content_type: number;
+  read: boolean;
 }
 
 export function messagesQueryKey(address?: string | null, peerAddress?: string) {
   return ['messages-thread', address ?? null, peerAddress ?? null] as const;
 }
 
-async function fetchConversation(
-  convId: Uint8Array,
+async function fetchInbox(
+  inboxOwner: string,
   source: string,
 ): Promise<MessageData[]> {
   try {
-    const raw = await readContract<RawMessage[]>(
+    const raw = await readContract<RawInboxMessage[]>(
       CONTRACT_IDS.messages,
       'get_messages',
-      [arg.bytes(convId), arg.u32(0), arg.u32(50)],
+      [arg.address(inboxOwner), arg.u32(0), arg.u32(100)],
       source,
     );
     return (raw ?? []).map((m) => ({
       sender: m.sender,
       timestamp: Number(m.timestamp),
-      content: new TextDecoder().decode(new Uint8Array(m.content_hash)),
-      content_type: m.content_type,
+      content: new TextDecoder().decode(new Uint8Array(m.content)),
+      read: m.read,
     }));
-  } catch (e) {
-    console.warn('[fetchConversation] error:', e);
+  } catch {
     return [];
   }
 }
@@ -57,15 +55,18 @@ export function useMessages(peerAddress: string | undefined) {
       if (!address || !CONTRACT_IDS.messages) return [];
 
       if (!peerAddress) {
-        console.log('[useMessages] no peerAddress, returning []');
-        return [];
+        return await fetchInbox(address, address);
       }
 
-      const convId = await computeConversationId(address, peerAddress);
-      console.log('[useMessages] fetching conversation:', convId);
-      const messages = await fetchConversation(convId, address);
+      const [myInbox, peerInbox] = await Promise.all([
+        fetchInbox(address, address),
+        fetchInbox(peerAddress, address),
+      ]);
 
-      return messages.sort((a, b) => a.timestamp - b.timestamp);
+      const received = myInbox.filter((m) => m.sender === peerAddress);
+      const sent = peerInbox.filter((m) => m.sender === address);
+
+      return [...received, ...sent].sort((a, b) => a.timestamp - b.timestamp);
     },
     staleTime: 5_000,
     refetchInterval: 6_000,

@@ -17,7 +17,6 @@ import { useWallet } from '@/components/wallet/WalletProvider';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { writeContract, arg } from '@/lib/soroban';
 import { uploadToIpfs, uploadPayload } from '@/lib/ipfs';
-import { computeConversationId } from '@/lib/conv';
 
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>();
@@ -64,13 +63,13 @@ export default function ConversationPage() {
     setTimeout(() => setCopiedAddress(false), 1500);
   }, [peerAddress]);
 
-  const sendMessage = useCallback(async (content: Uint8Array, contentType: number) => {
+  const sendMessage = useCallback(async (text: string) => {
     if (!address || !peerAddress || !CONTRACT_IDS.messages) return;
-    const convId = await computeConversationId(address, peerAddress);
+    const contentBytes = new TextEncoder().encode(text);
     await writeContract(
       CONTRACT_IDS.messages,
       'send_message',
-      [arg.address(address), arg.bytes(convId), arg.bytes(content), arg.u32(contentType)],
+      [arg.address(address), arg.address(peerAddress), arg.bytes(contentBytes)],
       address,
       signTransaction,
     );
@@ -111,9 +110,9 @@ export default function ConversationPage() {
           return;
         }
         setUploading(false);
-        await sendMessage(new TextEncoder().encode(payloadCid.cid), 1);
+        await sendMessage(payloadCid.cid);
       } else {
-        await sendMessage(new TextEncoder().encode(text), 0);
+        await sendMessage(text);
       }
       setInput('');
       setAttachedFile(null);
@@ -212,6 +211,7 @@ export default function ConversationPage() {
               isOwn={msg.sender === address}
               index={i}
               senderAddress={msg.sender}
+              read={msg.read}
             />
           ))}
         </div>
