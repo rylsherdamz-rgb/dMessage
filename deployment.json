@@ -1,21 +1,21 @@
 {
   "network": "testnet",
-  "deployed_at": "2026-06-27T13:20:00Z",
-  "git_commit": "3ec3073d4c11cd9138e8f540f7fbc4c18d970d3a",
+  "deployed_at": "2026-06-29T07:30:00Z",
+  "git_commit": "bda4aa27bf0937bf22cd1f72de89a7f63c4988c5",
   "contracts": {
     "user_registry": {
-      "id": "CAQ54Z6ARYWHSGQK4ZWPVLS3SEEDCCRTL4WJLEZAYFPMX4MPA5A77GQO",
+      "id": "CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA",
       "wasm_sha256": "000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964",
       "src": "contracts/user_registry/src/lib.rs"
     },
     "social_graph": {
-      "id": "CAIA32SCGTA2UTDWS7TYPSARBT2JJJ7JYR4EZ3ED5K6LNXI2LP645JKD",
+      "id": "CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7",
       "wasm_sha256": "2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c",
       "src": "contracts/social_graph/src/lib.rs"
     },
     "messages": {
-      "id": "CDJFUACEJEV435V5PEFDYQO6M772VKJ23D3PIJKJPGTYMHKU4NFFODCG",
-      "wasm_sha256": "0c11a4f44cb48271da223c81b47abdee68fbc9788d1bb3268a0840109523c41d",
+      "id": "CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK",
+      "wasm_sha256": "8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e",
       "src": "contracts/messages/src/lib.rs"
     }
   },
