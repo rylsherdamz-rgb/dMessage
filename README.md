@@ -94,6 +94,32 @@ Users registered and interacting via the deployed Soroban contracts on testnet:
 
 ![Vercel analytics](images/vercel_analystics.png)
 
+### User Feedback
+
+dMessage was user-tested with 20 participants who provided feedback via Google Form. The raw responses and a summary of requested changes are linked below.
+
+| Resource | Link |
+|----------|------|
+| Feedback Form (submit) | [Google Form](https://docs.google.com/forms/d/e/1FAIpQLSc7hyuuQ1cFdldSA9DytbcR9kwo9EXT2DLPiszzqrrfrfwKVQ/viewform) |
+| Response Spreadsheet | [Google Sheets](https://docs.google.com/spreadsheets/d/1Mif_PoLEXyziO1vClWaE9RXGxwJ5rDX-RVXyJ128YbA/edit?resourcekey=&gid=213717360#gid=213717360) |
+
+**Top requested improvements (ordered by frequency):**
+
+1. **QR code integration** — scanner for wallet addresses, shareable QR per profile/chat
+2. **Onboarding improvements** — guided tour, better first-run experience, feature highlights
+3. **Search** — filter conversations and contacts
+4. **Dark mode** — theme toggle for night-time use
+5. **Read receipts** — delivery indicators and read status on messages
+6. **Notification customization** — per-contact sounds, more variety
+7. **Group chats** — multi-party encrypted conversations
+8. **Emoji picker** — inline emoji selection while typing
+9. **File sharing** — send images and files beyond text
+10. **Disappearing messages** — auto-delete after viewing
+
+Full details available in the [response spreadsheet](https://docs.google.com/spreadsheets/d/1Mif_PoLEXyziO1vClWaE9RXGxwJ5rDX-RVXyJ128YbA/edit?resourcekey=&gid=213717360#gid=213717360).
+
+- **User Feedback Folder:** `user_feedback/` (Excel exports added here)
+
 **Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
 
 | Contract | Address | WASM Hash (SHA256) |
