@@ -16,7 +16,7 @@ import { useArchive } from '@/hooks/useArchive';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { writeContract, arg } from '@/lib/soroban';
-import { uploadToIpfs, encodeFileMessage } from '@/lib/ipfs';
+import { uploadToIpfs, uploadPayload } from '@/lib/ipfs';
 
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>();
@@ -93,7 +93,8 @@ export default function ConversationPage() {
     setSendError(null);
     setUploading(true);
     try {
-      let content = text;
+      let fileCid: string | undefined;
+      let fileName: string | undefined;
       if (attachedFile) {
         const result = await uploadToIpfs(attachedFile);
         if (!result) {
@@ -102,9 +103,19 @@ export default function ConversationPage() {
           setSending(false);
           return;
         }
-        content = content ? `${content} ${encodeFileMessage(result.cid)}` : encodeFileMessage(result.cid);
+        fileCid = result.cid;
+        fileName = attachedFile.name;
       }
-      await sendMessage(content);
+
+      const payloadCid = await uploadPayload({ t: text || undefined, f: fileCid, n: fileName });
+      if (!payloadCid) {
+        setSendError('Message upload failed');
+        setUploading(false);
+        setSending(false);
+        return;
+      }
+
+      await sendMessage(payloadCid.cid);
       setInput('');
       setAttachedFile(null);
       if (textareaRef.current) textareaRef.current.style.height = 'auto';

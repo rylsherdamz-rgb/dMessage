@@ -1,11 +1,13 @@
 'use client';
 
-import { Check, CheckCheck, File, Download } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Check, CheckCheck, File, Download, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { useProfile } from '@/hooks/useProfile';
 import { relativeTime } from '@/lib/time';
-import { parseFileMessage, getIpfsUrl } from '@/lib/ipfs';
+import { fetchPayload, getIpfsUrl } from '@/lib/ipfs';
+import type { MessagePayload } from '@/lib/ipfs';
 
 interface MessageBubbleProps {
   sender: string;
@@ -31,8 +33,18 @@ export function MessageBubble({
     ? `@${senderProfile.username}`
     : `${senderAddress.slice(0, 6)}…`;
 
-  const file = parseFileMessage(content);
-  const textBefore = file ? content.replace(/\[f:[a-zA-Z0-9]+\]/, '').trim() : content;
+  const isCid = content.startsWith('Qm') || content.startsWith('bafy');
+  const [payload, setPayload] = useState<MessagePayload | null>(null);
+  const [loadingPayload, setLoadingPayload] = useState(!!isCid);
+
+  useEffect(() => {
+    if (!isCid) return;
+    let cancelled = false;
+    fetchPayload(content).then((p) => { if (!cancelled) { setPayload(p); setLoadingPayload(false); } });
+    return () => { cancelled = true; };
+  }, [content, isCid]);
+
+  const displayText = payload?.t ?? (isCid ? '' : content);
 
   return (
     <motion.div
@@ -57,16 +69,19 @@ export function MessageBubble({
               : 'border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text)]'
           }`}
         >
-          {textBefore && (
-            <p className="font-mono text-sm leading-relaxed break-words">{textBefore}</p>
+          {loadingPayload && (
+            <Loader2 className="h-4 w-4 animate-spin text-[var(--text-faint)]" strokeWidth={2} />
           )}
-          {file && (
-            <div className={`flex items-center gap-3 ${textBefore ? 'mt-2' : ''}`}>
+          {!loadingPayload && displayText && (
+            <p className="font-mono text-sm leading-relaxed break-words">{displayText}</p>
+          )}
+          {!loadingPayload && payload?.f && (
+            <div className={`flex items-center gap-3 ${displayText ? 'mt-2' : ''}`}>
               <File className="h-8 w-8 shrink-0" strokeWidth={1.5} />
               <div className="min-w-0">
-                <p className="truncate font-mono text-sm font-bold">{file.cid.slice(0, 12)}…</p>
+                <p className="truncate font-mono text-sm font-bold">{payload.n ?? payload.f.slice(0, 12)}</p>
                 <a
-                  href={getIpfsUrl(file.cid)}
+                  href={getIpfsUrl(payload.f)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider underline underline-offset-2"
