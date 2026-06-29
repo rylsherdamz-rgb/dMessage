@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, Copy, Send, ShieldCheck, X, Smile } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Send, ShieldCheck, X, Paperclip, Loader2 } from 'lucide-react';
 import { ChatShell } from '@/components/chat/ChatShell';
 import { ConnectGate } from '@/components/layout/ConnectGate';
 import { Nav } from '@/components/layout/Nav';
@@ -16,6 +16,7 @@ import { useArchive } from '@/hooks/useArchive';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { writeContract, arg } from '@/lib/soroban';
+import { uploadToIpfs } from '@/lib/ipfs';
 
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,11 +31,10 @@ export default function ConversationPage() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState(false);
-  const [showEmoji, setShowEmoji] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const EMOJIS = ['😀','😂','❤️','🔥','👍','🎉','💀','🚀','💯','✨','👀','🙏','😢','🥳','💜','🌙','⚡','🫡'];
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -62,6 +62,43 @@ export default function ConversationPage() {
     setTimeout(() => setCopiedAddress(false), 1500);
   }, [peerAddress]);
 
+  const sendMessage = useCallback(async (text: string) => {
+    if (!address || !peerAddress || !CONTRACT_IDS.messages) return;
+    const contentBytes = new TextEncoder().encode(text);
+    await writeContract(
+      CONTRACT_IDS.messages,
+      'send_message',
+      [arg.address(address), arg.address(peerAddress), arg.bytes(contentBytes)],
+      address,
+      signTransaction,
+    );
+    const key = messagesQueryKey(address, peerAddress);
+    queryClient.invalidateQueries({ queryKey: key });
+    setTimeout(() => queryClient.invalidateQueries({ queryKey: key }), 6000);
+  }, [address, peerAddress, signTransaction, queryClient]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || uploading || !address || !peerAddress) return;
+
+    setUploading(true);
+    setSendError(null);
+    try {
+      const result = await uploadToIpfs(file);
+      if (!result) {
+        setSendError('File upload failed — check Pinata API key');
+        return;
+      }
+      const msg = `[file:${result.cid}:${file.name}:${file.size}]`;
+      await sendMessage(msg);
+    } catch {
+      setSendError('File upload failed');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || sending || !address || !peerAddress) return;
@@ -69,40 +106,16 @@ export default function ConversationPage() {
     setSending(true);
     setSendError(null);
     try {
-      const contentBytes = new TextEncoder().encode(text);
-
-      if (CONTRACT_IDS.messages) {
-        await writeContract(
-          CONTRACT_IDS.messages,
-          'send_message',
-          [
-            arg.address(address),
-            arg.address(peerAddress),
-            arg.bytes(contentBytes),
-          ],
-          address,
-          signTransaction,
-        );
-      }
+      await sendMessage(text);
       setInput('');
-
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
-
-      // The send tx needs a few seconds to be included in a ledger before the
-      // new message is queryable. Refetch immediately (in case it's already in)
-      // and again after confirmation latency.
-      const key = messagesQueryKey(address, peerAddress);
-      queryClient.invalidateQueries({ queryKey: key });
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: key }), 6000);
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
     } catch (err) {
       console.error('[ConversationPage] send failed:', err);
       setSendError('Transaction failed — check your wallet and try again');
     } finally {
       setSending(false);
     }
-  }, [input, sending, address, peerAddress, signTransaction, queryClient]);
+  }, [input, sending, address, peerAddress, sendMessage]);
 
   if (!isConnected) {
     return (
@@ -131,7 +144,7 @@ export default function ConversationPage() {
           <Avatar seed={peerAddress} size={40} online />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="truncate font-mono text-sm font-black tracking-tight text-white">
+              <p className="truncate font-mono text-sm font-black tracking-tight text-[var(--text)]">
                 {displayName}
               </p>
               <button
@@ -226,35 +239,25 @@ export default function ConversationPage() {
                 placeholder="Type a message… (Shift+Enter for new line)"
                 disabled={sending}
                 rows={1}
-                className="brutal-input min-w-0 w-full resize-none bg-[var(--bg)] px-4 py-3 pr-10 font-mono text-sm text-white placeholder-[var(--text-muted)] disabled:opacity-40"
+                className="brutal-input min-w-0 w-full resize-none bg-[var(--bg)] px-4 py-3 font-mono text-sm text-[var(--text)] placeholder-[var(--text-muted)] disabled:opacity-40"
               />
-              <button
-                type="button"
-                onClick={() => setShowEmoji((s) => !s)}
-                aria-label="Emoji picker"
-                className="absolute bottom-2 right-2 text-[var(--text-faint)] transition-colors hover:text-[var(--accent)]"
-              >
-                <Smile className="h-4 w-4" strokeWidth={2} />
-              </button>
-              {showEmoji && (
-                <div className="absolute bottom-full left-0 z-50 mb-2 grid w-max grid-cols-6 gap-1 border-2 border-[var(--border)] bg-[var(--bg-surface)] p-2">
-                  {EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => {
-                        setInput((prev) => prev + emoji);
-                        autoResize();
-                        textareaRef.current?.focus();
-                      }}
-                      className="flex h-8 w-8 items-center justify-center text-lg transition-colors hover:bg-[var(--bg-elevated)]"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              aria-label="Attach file"
+              className="brutal flex items-center bg-[var(--bg)] px-3 py-3 font-mono text-xs text-[var(--text-muted)] disabled:opacity-30"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} /> : <Paperclip className="h-4 w-4" strokeWidth={2} />}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileUpload}
+              className="hidden"
+              accept="image/*,application/pdf,.txt"
+            />
             <button
               type="submit"
               disabled={sending || !input.trim()}

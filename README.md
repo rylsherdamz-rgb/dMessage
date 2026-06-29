@@ -94,6 +94,8 @@ Users registered and interacting via the deployed Soroban contracts on testnet:
 
 ![Vercel analytics](images/vercel_analystics.png)
 
+- **User Feedback Folder:** `user_feedback/` ([Excel export](user_feedback/dMessage%20FeedBack%20%28Responses%29.xlsx))
+
 **Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
 
 ### Presentation

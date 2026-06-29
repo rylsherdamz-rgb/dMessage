@@ -28,18 +28,22 @@ async function fetchInbox(
   inboxOwner: string,
   source: string,
 ): Promise<MessageData[]> {
-  const raw = await readContract<RawInboxMessage[]>(
-    CONTRACT_IDS.messages,
-    'get_messages',
-    [arg.address(inboxOwner), arg.u32(0), arg.u32(100)],
-    source,
-  );
-  return (raw ?? []).map((m) => ({
-    sender: m.sender,
-    timestamp: Number(m.timestamp),
-    content: new TextDecoder().decode(new Uint8Array(m.content)),
-    read: m.read,
-  }));
+  try {
+    const raw = await readContract<RawInboxMessage[]>(
+      CONTRACT_IDS.messages,
+      'get_messages',
+      [arg.address(inboxOwner), arg.u32(0), arg.u32(100)],
+      source,
+    );
+    return (raw ?? []).map((m) => ({
+      sender: m.sender,
+      timestamp: Number(m.timestamp),
+      content: new TextDecoder().decode(new Uint8Array(m.content)),
+      read: m.read,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -63,24 +67,19 @@ export function useMessages(peerAddress: string | undefined) {
     queryFn: async () => {
       if (!address || !CONTRACT_IDS.messages) return [];
 
-      try {
-        if (!peerAddress) {
-          return await fetchInbox(address, address);
-        }
-
-        const [myInbox, peerInbox] = await Promise.all([
-          fetchInbox(address, address),
-          fetchInbox(peerAddress, address),
-        ]);
-
-        const received = myInbox.filter((m) => m.sender === peerAddress);
-        const sent = peerInbox.filter((m) => m.sender === address);
-
-        return [...received, ...sent].sort((a, b) => a.timestamp - b.timestamp);
-      } catch (err) {
-        console.error('[useMessages] query failed:', err);
-        return [];
+      if (!peerAddress) {
+        return await fetchInbox(address, address);
       }
+
+      const [myInbox, peerInbox] = await Promise.all([
+        fetchInbox(address, address),
+        fetchInbox(peerAddress, address),
+      ]);
+
+      const received = myInbox.filter((m) => m.sender === peerAddress);
+      const sent = peerInbox.filter((m) => m.sender === address);
+
+      return [...received, ...sent].sort((a, b) => a.timestamp - b.timestamp);
     },
     staleTime: 5_000,
   });
