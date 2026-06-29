@@ -4,60 +4,48 @@ import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { readContract, arg } from '@/lib/soroban';
+import { computeConversationId } from '@/lib/conv';
 
 export interface MessageData {
   sender: string;
   timestamp: number;
   content: string;
-  read: boolean;
+  content_type: number;
 }
 
-interface RawInboxMessage {
+interface RawMessage {
   sender: string;
-  content: Uint8Array;
   timestamp: bigint | number;
-  read: boolean;
+  content_hash: number[];
+  content_type: number;
 }
 
-/** React Query key for a conversation thread; exported so callers can invalidate. */
 export function messagesQueryKey(address?: string | null, peerAddress?: string) {
   return ['messages-thread', address ?? null, peerAddress ?? null] as const;
 }
 
-async function fetchInbox(
-  inboxOwner: string,
+async function fetchConversation(
+  convId: Uint8Array,
   source: string,
 ): Promise<MessageData[]> {
   try {
-    const raw = await readContract<RawInboxMessage[]>(
+    const raw = await readContract<RawMessage[]>(
       CONTRACT_IDS.messages,
       'get_messages',
-      [arg.address(inboxOwner), arg.u32(0), arg.u32(100)],
+      [arg.bytes(convId), arg.u32(0), arg.u32(50)],
       source,
     );
     return (raw ?? []).map((m) => ({
       sender: m.sender,
       timestamp: Number(m.timestamp),
-      content: new TextDecoder().decode(new Uint8Array(m.content)),
-      read: m.read,
+      content: new TextDecoder().decode(new Uint8Array(m.content_hash)),
+      content_type: m.content_type,
     }));
   } catch {
     return [];
   }
 }
 
-/**
- * Loads a conversation thread between the connected user and `peerAddress`.
- *
- * The messages contract is an inbox model keyed by recipient: a message I send
- * to the peer lands in the PEER's inbox, and a message the peer sends me lands
- * in MY inbox. So a full two-sided thread requires reading both inboxes:
- *   - my inbox, keeping messages whose sender is the peer   (peer -> me)
- *   - peer's inbox, keeping messages whose sender is me      (me -> peer)
- * The two halves are merged and sorted by timestamp.
- *
- * With no `peerAddress`, returns the connected user's full inbox.
- */
 export function useMessages(peerAddress: string | undefined) {
   const { address } = useWallet();
 
@@ -67,19 +55,12 @@ export function useMessages(peerAddress: string | undefined) {
     queryFn: async () => {
       if (!address || !CONTRACT_IDS.messages) return [];
 
-      if (!peerAddress) {
-        return await fetchInbox(address, address);
-      }
+      if (!peerAddress) return [];
 
-      const [myInbox, peerInbox] = await Promise.all([
-        fetchInbox(address, address),
-        fetchInbox(peerAddress, address),
-      ]);
+      const convId = await computeConversationId(address, peerAddress);
+      const messages = await fetchConversation(convId, address);
 
-      const received = myInbox.filter((m) => m.sender === peerAddress);
-      const sent = peerInbox.filter((m) => m.sender === address);
-
-      return [...received, ...sent].sort((a, b) => a.timestamp - b.timestamp);
+      return messages.sort((a, b) => a.timestamp - b.timestamp);
     },
     staleTime: 5_000,
   });

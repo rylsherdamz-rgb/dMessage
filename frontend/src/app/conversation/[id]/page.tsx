@@ -17,6 +17,7 @@ import { useWallet } from '@/components/wallet/WalletProvider';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { writeContract, arg } from '@/lib/soroban';
 import { uploadToIpfs, uploadPayload } from '@/lib/ipfs';
+import { computeConversationId } from '@/lib/conv';
 
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>();
@@ -63,13 +64,13 @@ export default function ConversationPage() {
     setTimeout(() => setCopiedAddress(false), 1500);
   }, [peerAddress]);
 
-  const sendMessage = useCallback(async (text: string) => {
+  const sendMessage = useCallback(async (content: Uint8Array, contentType: number) => {
     if (!address || !peerAddress || !CONTRACT_IDS.messages) return;
-    const contentBytes = new TextEncoder().encode(text);
+    const convId = await computeConversationId(address, peerAddress);
     await writeContract(
       CONTRACT_IDS.messages,
       'send_message',
-      [arg.address(address), arg.address(peerAddress), arg.bytes(contentBytes)],
+      [arg.address(address), arg.bytes(convId), arg.bytes(content), arg.u32(contentType)],
       address,
       signTransaction,
     );
@@ -91,31 +92,29 @@ export default function ConversationPage() {
 
     setSending(true);
     setSendError(null);
-    setUploading(true);
+
     try {
-      let fileCid: string | undefined;
-      let fileName: string | undefined;
       if (attachedFile) {
-        const result = await uploadToIpfs(attachedFile);
-        if (!result) {
+        setUploading(true);
+        const fileResult = await uploadToIpfs(attachedFile);
+        if (!fileResult) {
           setSendError('File upload failed — check Pinata API key');
           setUploading(false);
           setSending(false);
           return;
         }
-        fileCid = result.cid;
-        fileName = attachedFile.name;
-      }
-
-      const payloadCid = await uploadPayload({ t: text || undefined, f: fileCid, n: fileName });
-      if (!payloadCid) {
-        setSendError('Message upload failed');
+        const payloadCid = await uploadPayload({ t: text || undefined, f: fileResult.cid, n: attachedFile.name });
+        if (!payloadCid) {
+          setSendError('Message upload failed');
+          setUploading(false);
+          setSending(false);
+          return;
+        }
         setUploading(false);
-        setSending(false);
-        return;
+        await sendMessage(new TextEncoder().encode(payloadCid.cid), 1);
+      } else {
+        await sendMessage(new TextEncoder().encode(text), 0);
       }
-
-      await sendMessage(payloadCid.cid);
       setInput('');
       setAttachedFile(null);
       if (textareaRef.current) textareaRef.current.style.height = 'auto';
@@ -213,7 +212,6 @@ export default function ConversationPage() {
               isOwn={msg.sender === address}
               index={i}
               senderAddress={msg.sender}
-              read={msg.read}
             />
           ))}
         </div>
