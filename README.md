@@ -31,6 +31,7 @@ A world where:
 - **Media Support**: Text and image sharing with IPFS pinning
 - **Wallet Integration**: Native Stellar transaction signing for contract interactions
 - **Low Gas Costs**: Optimized Soroban storage patterns using persistent storage
+- **Gasless / Fee Sponsorship**: A sponsor/relayer can pay a user's fee via Stellar fee-bump, so new users transact without holding XLM (on-chain sponsorship accounting via `*_sponsored` functions)
 - **Open Source**: Fully auditable smart contracts and frontend code
 - **Dark Theme**: Modern UI with Tailwind CSS v4, custom OKLCH color system
 - **3D Landing Page**: Interactive hero scene with Three.js and Framer Motion
@@ -105,36 +106,63 @@ View the dMessage pitch deck:
 - **Interactive:** [Gamma Presentation](https://gamma.app/docs/dMessage-dq4tl7fbm2p9cxk?mode=doc)
 - **PDF:** [`ppt/dMessage.pdf`](ppt/dMessage.pdf)
 
+#### Current — Gasless / Fee-Sponsored (in use)
+
+These contracts add **Fee Sponsorship**: a sponsor/relayer account can pay a user's
+transaction fee via a Stellar fee-bump transaction, so users transact without holding
+XLM. Each state-changing function has a `*_sponsored` variant that records on-chain
+sponsorship (`get_sponsored_count`, `Sponsored` event). Source lives in
+[`contracts/gasless/`](contracts/gasless).
+
 | Contract | Address | WASM Hash (SHA256) |
 |----------|---------|-------------------|
-| UserRegistry | `CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` |
-| SocialGraph | `CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7` | `2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c` |
-| MessageContract (v2 — current) | `CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7` | `98221de14f435ac68060c3e7494da96819563467ed46ce78ce8d1e618e1bb51d` |
-| MessageContract (v1 — deprecated) | `CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK` | `8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e` |
+| UserRegistry (gasless) | `CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG` | `1565c6a47be7c5a04496764d56348e98e0f9f243046e42442a788cd13460cf4c` |
+| SocialGraph (gasless) | `CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q` | `2eebe3418e6e78b2c471d88e6136d77cf2a4f957c7221b4e15b2575b0a6a5724` |
+| MessageContract (gasless) | `CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3` | `64194f4ea00d6970a4819d1977c700163f2d9df75f242ad139e7e49e15baa995` |
 
-Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7) · [Messages v2](https://stellar.expert/explorer/testnet/contract/CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7) · [Messages v1 (deprecated)](https://stellar.expert/explorer/testnet/contract/CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK)
+Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q) · [Messages](https://stellar.expert/explorer/testnet/contract/CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3)
 
-All contracts were deployed by account [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM) (v1) and [`GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH`](https://stellar.expert/explorer/testnet/account/GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH) (v2) — view all deployment transactions there.
+The gasless contracts were deployed by account [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM).
+
+#### Deprecated Contracts (kept for reference, no longer used)
+
+The previous non-gasless contracts remain on-chain and in the repo for history and
+verification, but the frontend no longer points to them.
+
+| Contract | Address | WASM Hash (SHA256) | Status |
+|----------|---------|-------------------|--------|
+| UserRegistry | `CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` | deprecated |
+| SocialGraph | `CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7` | `2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c` | deprecated |
+| MessageContract (v2) | `CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7` | `98221de14f435ac68060c3e7494da96819563467ed46ce78ce8d1e618e1bb51d` | deprecated |
+| MessageContract (v1) | `CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK` | `8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e` | deprecated |
+
+Explorer (deprecated): [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7) · [Messages v2](https://stellar.expert/explorer/testnet/contract/CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7) · [Messages v1](https://stellar.expert/explorer/testnet/contract/CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK)
+
+The deprecated contracts were deployed by [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM) (v1) and [`GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH`](https://stellar.expert/explorer/testnet/account/GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH) (v2).
 
 ### Source Verification
 
-Anyone can verify these contracts by rebuilding from source:
+Anyone can verify the **current (gasless)** contracts by rebuilding from source:
 
 ```bash
 # 1. Clone the repo at the deployment commit
-git checkout 3ec3073
+git checkout 50cbb46
 
-# 2. Build
-stellar contract build --contract-dir contracts/user_registry
-stellar contract build --contract-dir contracts/social_graph
-stellar contract build --contract-dir contracts/messages
+# 2. Build each gasless contract (wasm32v1-none)
+cd contracts/gasless/user_registry_gasless && stellar contract build && cd -
+cd contracts/gasless/social_graph_gasless && stellar contract build && cd -
+cd contracts/gasless/messages_gasless && stellar contract build && cd -
 
 # 3. Compare SHA256 hashes
-sha256sum contracts/target/wasm32v1-none/release/*.wasm
-# The output should match the WASM hashes in the table above
+sha256sum contracts/gasless/target/wasm32v1-none/release/*.wasm
+# The output should match the gasless WASM hashes in the table above
 ```
 
-The deployment manifest with full metadata is at [`deployment.json`](deployment.json).
+The deprecated (non-gasless) contracts can still be verified by building
+`contracts/user_registry`, `contracts/social_graph`, and `contracts/messages`.
+
+The deployment manifest with full metadata (current + deprecated) is at
+[`deployment.json`](deployment.json).
 
 *Mainnet addresses to be announced post-audit.*
 
@@ -187,18 +215,88 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## Smart Contract API
 
 ### UserRegistry
-- `register_user(username, encryption_pubkey, metadata_ipfs)` — Register or update your profile
+- `register_user(caller, username, encryption_pubkey, metadata_ipfs)` — Register or update your profile
+- `register_user_sponsored(sponsor, caller, …)` — Gasless register; `sponsor` pays the fee (fee-bump) and is recorded on-chain
 - `get_user(addr)` — Get a user's profile by their Stellar address
+- `get_sponsored_count(sponsor)` — How many actions a sponsor has paid for
 
 ### SocialGraph
-- `ensure_conversation(user_a, user_b)` — Create or get a deterministic conversation between two users
+- `ensure_conversation(caller, user_a, user_b)` — Create or get a deterministic conversation between two users
+- `ensure_conversation_sponsored(sponsor, caller, user_a, user_b)` — Gasless variant; `sponsor` pays via fee-bump
 - `get_user_conversations(user_addr)` — Get all conversation references for a user
+- `get_sponsored_count(sponsor)` — How many actions a sponsor has paid for
 
 ### MessageContract
 - `send_message(sender, recipient, content)` — Store a message in the recipient's inbox
+- `send_message_sponsored(sponsor, sender, recipient, content)` — Gasless send; `sponsor` pays via fee-bump
 - `get_messages(user, page, page_size)` — Paginated inbox retrieval
 - `mark_as_read(caller, index)` — Mark a message as read
+- `mark_as_read_sponsored(sponsor, caller, index)` — Gasless mark-as-read; `sponsor` pays via fee-bump
 - `my_message_count(user)` — Get the total message count for a user
+- `get_sponsored_count(sponsor)` — How many actions a sponsor has paid for
+
+## Advanced Features
+
+### Fee Sponsorship — Gasless Transactions via Fee-Bump
+
+The current contracts (see [`contracts/gasless/`](contracts/gasless)) let a
+**sponsor/relayer pay a user's transaction fee**, so a brand-new user with **no
+XLM** can register, send messages, and mark them read — a fully gasless
+experience.
+
+**How fee-bump works on Stellar.** A fee-bump is a transaction-envelope feature,
+not contract logic. One transaction is wrapped inside another:
+
+```
+┌─────────────────────────────────────────────┐
+│  FeeBumpTransaction (OUTER)                   │
+│  • feeSource  = SPONSOR account               │  ← pays the XLM fee
+│  • signatures = [ sponsor's signature ]        │
+│   ┌─────────────────────────────────────────┐ │
+│   │  Transaction (INNER)                      │ │
+│   │  • source     = USER account              │ │  ← the real action
+│   │  • operation  = InvokeHostFunction(...)   │ │     (calls the contract)
+│   │  • Soroban auth signed by USER            │ │
+│   └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────┘
+```
+
+1. The user signs the Soroban auth entries of the inner transaction (this is what
+   satisfies `caller.require_auth()` / `sender.require_auth()` in the contract).
+2. A sponsor account wraps it in a `FeeBumpTransaction` (fee source = sponsor),
+   signs the outer envelope, and submits it.
+3. The network charges the **sponsor**; the user spends nothing.
+
+**Security.** The user's signature covers the inner transaction, and the sponsor
+**cannot alter it** — any change invalidates the user's signature and the Soroban
+auth entries. The sponsor controls *whether* the action is paid for, never *what*
+the action does.
+
+**On-chain accountability (what the contracts add).** Fee-bump alone leaves no
+contract-level record of who sponsored whom. Each state-changing function gains a
+`*_sponsored` variant that:
+
+- requires `sponsor.require_auth()` (the sponsor cryptographically consents, so the
+  tally cannot be forged) **and** the user's own `require_auth()`;
+- increments a per-sponsor counter readable via `get_sponsored_count(sponsor)`;
+- emits a `Sponsored` event with `(sponsor, user)` topics.
+
+This enables relayer analytics, rate-limiting, and abuse prevention (e.g. "this
+sponsor has funded N actions this month — stop relaying"). The original,
+self-paid functions are kept intact and still work — including transparently
+under a fee-bump.
+
+### Migration Note — New Contracts & Deprecations
+
+This release **redeployed all three contracts** as gasless / fee-sponsored
+versions (addresses in the [Current — Gasless](#current--gasless--fee-sponsored-in-use)
+table) and repointed the frontend, `.env.example`, and `deployment.json` to them.
+
+The previous non-gasless contracts are **deprecated** — kept on-chain and in the
+repo (`contracts/user_registry`, `contracts/social_graph`, `contracts/messages`)
+for history and verification, but no longer used by the app. See the
+[Deprecated Contracts](#deprecated-contracts-kept-for-reference-no-longer-used)
+table for their addresses and WASM hashes.
 
 ## Future Scope
 
