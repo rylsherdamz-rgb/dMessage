@@ -23,7 +23,7 @@ type AvailState =
  * validation + availability check, then registers it on UserRegistry.
  */
 export function UsernamePrompt() {
-  const { isConnected, address, signTransaction } = useWallet();
+  const { isConnected, address, signTransaction, signAuthEntry } = useWallet();
   const { data: profile, isLoading, isFetched, refetch } = useProfile(address);
 
   const [dismissed, setDismissed] = useState(true);
@@ -92,7 +92,7 @@ export function UsernamePrompt() {
     setSubmitting(true);
     setError(null);
     try {
-      await registerUser(address, value.trim(), signTransaction);
+      await registerUser(address, value.trim(), signTransaction, signAuthEntry);
       await refetch();
       dismiss();
     } catch (err) {

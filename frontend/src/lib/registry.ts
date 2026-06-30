@@ -1,7 +1,8 @@
 'use client';
 
 import { CONTRACT_IDS } from './stellar';
-import { writeContract, arg } from './soroban';
+import { arg } from './soroban';
+import { writeMaybeSponsored, type AuthEntrySigner } from './gasless';
 import { ensurePublicKeyBytes } from './keystore';
 
 export interface UsernameValidation {
@@ -51,12 +52,17 @@ export async function checkUsernameAvailable(
 /**
  * Registers (or updates) the connected user's profile on the UserRegistry
  * contract: publishes the chosen username and the device's encryption public
- * key. Returns the send-transaction response.
+ * key.
+ *
+ * Uses the gasless / fee-sponsored path when a relayer is configured (the
+ * sponsor pays the fee and the user signs only their Soroban auth entry), and
+ * transparently falls back to a self-paid transaction otherwise.
  */
 export async function registerUser(
   address: string,
   username: string,
   signTransaction: (xdr: string) => Promise<string>,
+  signAuthEntry: AuthEntrySigner,
 ) {
   if (!CONTRACT_IDS.userRegistry) {
     throw new Error('UserRegistry contract id is not configured');
@@ -64,7 +70,7 @@ export async function registerUser(
 
   const pubkeyBytes = await ensurePublicKeyBytes();
 
-  return writeContract(
+  return writeMaybeSponsored(
     CONTRACT_IDS.userRegistry,
     'register_user',
     [
@@ -75,5 +81,6 @@ export async function registerUser(
     ],
     address,
     signTransaction,
+    signAuthEntry,
   );
 }

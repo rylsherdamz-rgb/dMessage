@@ -10,10 +10,11 @@ import { useConversations } from '@/hooks/useConversations';
 import { useProfile } from '@/hooks/useProfile';
 import { useArchive } from '@/hooks/useArchive';
 import { CONTRACT_IDS } from '@/lib/stellar';
-import { writeContract, arg } from '@/lib/soroban';
+import { arg } from '@/lib/soroban';
+import { writeMaybeSponsored } from '@/lib/gasless';
 
 export function ConversationSidebar({ activeId }: { activeId?: string }) {
-  const { address, signTransaction } = useWallet();
+  const { address, signTransaction, signAuthEntry } = useWallet();
   const { data: conversations, isLoading, refetch } = useConversations();
   const { isArchived, hide, hideAll } = useArchive();
 
@@ -47,12 +48,13 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
     setCreating(true);
     setCreateError(null);
     try {
-      await writeContract(
+      await writeMaybeSponsored(
         CONTRACT_IDS.socialGraph,
         'ensure_conversation',
         [arg.address(address), arg.address(address), arg.address(peer)],
         address,
         signTransaction,
+        signAuthEntry,
       );
       setNewPeer('');
       setShowNew(false);

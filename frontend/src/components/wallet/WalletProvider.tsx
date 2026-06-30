@@ -14,9 +14,17 @@ import {
   isConnected,
   requestAccess,
   signTransaction as freighterSign,
+  signAuthEntry as freighterSignAuthEntry,
   WatchWalletChanges,
 } from '@stellar/freighter-api';
+import { Buffer } from 'buffer';
 import type { ReactNode } from 'react';
+
+/** Signature returned by a wallet over a Soroban auth-entry preimage. */
+export interface AuthEntrySignature {
+  signature: Buffer;
+  publicKey: string;
+}
 
 const NETWORK = process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet'
   ? Networks.PUBLIC
@@ -30,6 +38,13 @@ interface WalletContext {
   connect: () => Promise<void>;
   disconnect: () => void;
   signTransaction: (xdr: string) => Promise<string>;
+  /**
+   * Signs a Soroban authorization-entry preimage (base64 XDR of the
+   * HashIdPreimage) with the connected wallet. Used for gasless / fee-sponsored
+   * transactions where the user authorizes the contract invocation without being
+   * the transaction source. Returns the raw signature + the signer's public key.
+   */
+  signAuthEntry: (preimageXdrBase64: string) => Promise<AuthEntrySignature>;
 }
 
 const Ctx = createContext<WalletContext>({
@@ -40,6 +55,9 @@ const Ctx = createContext<WalletContext>({
   connect: async () => {},
   disconnect: () => {},
   signTransaction: async () => '',
+  signAuthEntry: async () => {
+    throw new Error('Wallet not connected');
+  },
 });
 
 export function WalletProvider({ children }: { children: ReactNode }) {
@@ -128,6 +146,33 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const signAuthEntry = useCallback(
+    async (preimageXdrBase64: string): Promise<AuthEntrySignature> => {
+      if (!address) throw new Error('Wallet not connected');
+      // Prefer the multi-wallet kit; fall back to Freighter directly.
+      try {
+        const res = await StellarWalletsKit.signAuthEntry(preimageXdrBase64, {
+          networkPassphrase: NETWORK,
+          address,
+        });
+        if (!res.signedAuthEntry) throw new Error('Empty auth-entry signature');
+        return {
+          signature: Buffer.from(res.signedAuthEntry, 'base64'),
+          publicKey: res.signerAddress ?? address,
+        };
+      } catch {
+        const res = await freighterSignAuthEntry(preimageXdrBase64, { address });
+        if (res.error) throw new Error(res.error.message ?? 'Auth-entry signing failed');
+        if (!res.signedAuthEntry) throw new Error('Empty auth-entry signature');
+        return {
+          signature: Buffer.from(res.signedAuthEntry, 'base64'),
+          publicKey: res.signerAddress ?? address,
+        };
+      }
+    },
+    [address],
+  );
+
   return (
     <Ctx.Provider
       value={{
@@ -138,6 +183,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         connect,
         disconnect,
         signTransaction,
+        signAuthEntry,
       }}
     >
       {children}
