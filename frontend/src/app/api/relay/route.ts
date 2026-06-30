@@ -5,7 +5,6 @@ import {
   Keypair,
   Networks,
   Address,
-  authorizeEntry,
   xdr,
   scValToNative,
 } from 'stellar-sdk';
@@ -13,23 +12,19 @@ import { CONTRACT_IDS } from '@/lib/contract-ids';
 import { precheck, recordSpend, usageSnapshot } from '@/lib/relay-guard';
 
 /**
- * Fee-sponsorship relayer (fee-bump model).
+ * Fee-sponsorship relayer.
  *
- * The user is the **source** of the inner Soroban transaction and authorizes it
- * by signing the whole inner transaction in their wallet (`signTransaction`) —
- * the same reliable call the self-paid path uses. The relayer:
+ * The relayer is the **sponsor**: it is the source account (and therefore the
+ * fee payer) of the Soroban transaction. The user never needs XLM or even a
+ * funded account — they only sign their own Soroban authorization entry on the
+ * client (see `lib/gasless.ts`). This endpoint co-signs the transaction envelope
+ * with the sponsor key and submits it.
  *
- *   - `prepare`: signs the SPONSOR's Soroban auth entry server-side (the sponsor
- *     key never leaves the server), returning the inner tx for the user to sign;
- *   - `submit`: wraps the user-signed inner tx in a Stellar **fee-bump**
- *     transaction whose fee source is the sponsor, so the sponsor pays the fee
- *     and the user spends no XLM.
- *
- * Security: every inbound tx must be a single `invokeHostFunction` op calling one
- * of our known contracts via a `*_sponsored` method whose first argument is the
- * sponsor — this bounds exactly what the sponsor will ever sign/pay for. The
- * user's account must already exist on-chain (Soroban authenticates G-address
- * auth against the ledger account).
+ * Security: the sponsor secret lives only on the server (`SPONSOR_SECRET`). Every
+ * inbound transaction is validated before signing — it must be sourced by the
+ * sponsor, contain exactly one `invokeHostFunction` operation that calls one of
+ * our known contracts via a `*_sponsored` method, and name the sponsor as its
+ * first argument. This bounds what the sponsor will ever pay for.
  */
 
 export const runtime = 'nodejs';
@@ -52,17 +47,27 @@ function sponsorKeypair(): Keypair | null {
   }
 }
 
+/**
+ * Optional Origin allowlist. Set `RELAY_ALLOWED_ORIGINS` to a comma-separated
+ * list (e.g. "https://dmessage.app,https://www.dmessage.app") to reject requests
+ * from other origins. If unset, all origins are allowed (convenient for local
+ * dev). This is defense-in-depth against drive-by abuse from other sites; the
+ * per-address rate limits and spend cap are the primary protection.
+ */
 function originAllowed(req: Request): boolean {
   const raw = process.env.RELAY_ALLOWED_ORIGINS;
   if (!raw) return true;
-  const allowed = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const allowed = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (allowed.length === 0) return true;
   const origin = req.headers.get('origin');
-  if (!origin) return false;
+  if (!origin) return false; // allowlist configured -> require a known Origin
   return allowed.includes(origin);
 }
 
-/** Returns the sponsor public key + current usage so the client can build a sponsored tx. */
+/** Returns the sponsor public key + current usage so the client can build a sponsor-sourced tx. */
 export async function GET() {
   const kp = sponsorKeypair();
   if (!kp) {
@@ -77,13 +82,17 @@ export async function GET() {
 export async function POST(req: Request) {
   const kp = sponsorKeypair();
   if (!kp) {
-    return NextResponse.json({ error: 'Relayer not configured (SPONSOR_SECRET unset)' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'Relayer not configured (SPONSOR_SECRET unset)' },
+      { status: 503 },
+    );
   }
+
   if (!originAllowed(req)) {
     return NextResponse.json({ error: 'Origin not allowed' }, { status: 403 });
   }
 
-  let body: { phase?: string; xdr?: string };
+  let body: { xdr?: string };
   try {
     body = await req.json();
   } catch {
@@ -92,121 +101,66 @@ export async function POST(req: Request) {
   if (!body.xdr || typeof body.xdr !== 'string') {
     return NextResponse.json({ error: 'Missing transaction xdr' }, { status: 400 });
   }
-  const phase = body.phase ?? 'submit';
 
-  if (phase === 'prepare') return handlePrepare(body.xdr, kp);
-  if (phase === 'submit') return handleSubmit(body.xdr, kp);
-  return NextResponse.json({ error: `Unknown phase '${phase}'` }, { status: 400 });
-}
-
-/**
- * Phase 1: validate the inner tx and sign the sponsor's Soroban auth entry.
- * Returns the inner tx XDR (sponsor auth signed) for the user to sign.
- */
-async function handlePrepare(innerXdr: string, kp: Keypair) {
+  // Parse + validate the user-authorized transaction.
   let tx;
   try {
-    tx = TransactionBuilder.fromXDR(innerXdr, NETWORK_PASSPHRASE);
+    tx = TransactionBuilder.fromXDR(body.xdr, NETWORK_PASSPHRASE);
   } catch {
     return NextResponse.json({ error: 'Malformed transaction xdr' }, { status: 400 });
   }
   if ('innerTransaction' in tx) {
     return NextResponse.json({ error: 'Fee-bump envelopes are not accepted' }, { status: 400 });
   }
+
   const validation = validateSponsoredTx(tx, kp.publicKey());
-  if (!validation.ok) {
-    return NextResponse.json({ error: validation.reason ?? 'Invalid transaction' }, { status: 400 });
-  }
-
-  // Sign the sponsor's auth entry at the XDR level so the rest of the inner tx
-  // (source, sequence, fee, footprint) is preserved byte-for-byte for the user.
-  const server = new rpc.Server(RPC_URL, { allowHttp: RPC_URL.startsWith('http://') });
-  let validUntil: number;
-  try {
-    const latest = await server.getLatestLedger();
-    validUntil = latest.sequence + 100;
-  } catch (e) {
-    return NextResponse.json({ error: 'RPC unavailable', detail: (e as Error).message }, { status: 502 });
-  }
-
-  try {
-    const env = xdr.TransactionEnvelope.fromXDR(innerXdr, 'base64');
-    const ihf = env.v1().tx().operations()[0].body().invokeHostFunctionOp();
-    const entries = ihf.auth();
-    const newEntries: xdr.SorobanAuthorizationEntry[] = [];
-    for (const entry of entries) {
-      const creds = entry.credentials();
-      if (creds.switch().name === 'sorobanCredentialsAddress') {
-        const addr = Address.fromScAddress(creds.address().address()).toString();
-        if (addr === kp.publicKey()) {
-          newEntries.push(await authorizeEntry(entry, kp, validUntil, NETWORK_PASSPHRASE));
-          continue;
-        }
-      }
-      newEntries.push(entry);
-    }
-    ihf.auth(newEntries);
-    return NextResponse.json({ xdr: env.toXDR('base64') });
-  } catch (e) {
-    return NextResponse.json({ error: 'Failed to sign sponsor auth', detail: (e as Error).message }, { status: 500 });
-  }
-}
-
-/**
- * Phase 2: validate the user-signed inner tx, fee-bump it with the sponsor as
- * fee source, and submit. The sponsor pays the fee; the user pays nothing.
- */
-async function handleSubmit(innerXdr: string, kp: Keypair) {
-  let inner;
-  try {
-    inner = TransactionBuilder.fromXDR(innerXdr, NETWORK_PASSPHRASE);
-  } catch {
-    return NextResponse.json({ error: 'Malformed transaction xdr' }, { status: 400 });
-  }
-  if ('innerTransaction' in inner) {
-    return NextResponse.json({ error: 'Fee-bump envelopes are not accepted' }, { status: 400 });
-  }
-
-  const validation = validateSponsoredTx(inner, kp.publicKey());
   if (!validation.ok || !validation.caller || !validation.method) {
     return NextResponse.json({ error: validation.reason ?? 'Invalid transaction' }, { status: 400 });
   }
 
-  const innerFee = (inner as unknown as { fee: string }).fee;
-  // Fee-bump charges roughly the inner fee again as inclusion headroom; bound by
-  // the inner fee which is itself the resource fee + a small buffer.
-  const feeStroops = Number(innerFee) * 2;
-  const guard = precheck({ caller: validation.caller, method: validation.method, feeStroops });
+  // Abuse protection: per-address rate limits, per-tx fee cap, daily spend cap.
+  const feeStroops = Number((tx as unknown as { fee: string }).fee);
+  const guard = precheck({
+    caller: validation.caller,
+    method: validation.method,
+    feeStroops,
+  });
   if (!guard.ok) {
     return NextResponse.json({ error: guard.reason }, { status: guard.status ?? 429 });
   }
 
-  let feeBump;
+  // Co-sign with the sponsor (source account) and submit.
   try {
-    feeBump = TransactionBuilder.buildFeeBumpTransaction(kp, innerFee, inner, NETWORK_PASSPHRASE);
-    feeBump.sign(kp);
-  } catch (e) {
-    return NextResponse.json({ error: 'Fee-bump build failed', detail: (e as Error).message }, { status: 500 });
+    tx.sign(kp);
+  } catch {
+    return NextResponse.json({ error: 'Sponsor signing failed' }, { status: 500 });
   }
 
   const server = new rpc.Server(RPC_URL, { allowHttp: RPC_URL.startsWith('http://') });
+
   let send;
   try {
-    send = await server.sendTransaction(feeBump);
+    send = await server.sendTransaction(tx);
   } catch (e) {
-    return NextResponse.json({ error: 'Submission failed', detail: (e as Error).message }, { status: 502 });
+    return NextResponse.json(
+      { error: 'Submission failed', detail: (e as Error).message },
+      { status: 502 },
+    );
   }
+
   if (send.status === 'ERROR') {
+    // Rejected before inclusion → no fee charged, so nothing to record.
     return NextResponse.json(
       { error: 'Transaction rejected by network', detail: send.errorResult?.toXDR('base64') },
       { status: 502 },
     );
   }
 
-  // Accepted for inclusion → billed to the sponsor even if the Soroban call later
-  // fails, so record the spend + action now.
+  // The transaction was accepted for inclusion. It is now billed to the sponsor
+  // even if the Soroban call ultimately fails, so record the spend + action now.
   recordSpend({ caller: validation.caller, method: validation.method, feeStroops });
 
+  // Best-effort short poll so the client gets a final status.
   const hash = send.hash;
   let finalStatus: string = send.status;
   for (let i = 0; i < 10; i++) {
@@ -218,42 +172,44 @@ async function handleSubmit(innerXdr: string, kp: Keypair) {
         if (got.status === 'SUCCESS' || got.status === 'FAILED') break;
       }
     } catch {
-      // keep polling (SDK can throw on result XDR parsing for some metas)
+      // keep polling
     }
   }
 
   const success = finalStatus === 'SUCCESS' || finalStatus === 'PENDING';
-  return NextResponse.json(
-    { hash, status: finalStatus, sponsor: kp.publicKey() },
-    { status: success ? 200 : 502 },
-  );
+  return NextResponse.json({ hash, status: finalStatus, sponsor: kp.publicKey() }, {
+    status: success ? 200 : 502,
+  });
 }
 
 interface Validation {
   ok: boolean;
   reason?: string;
+  /** Decoded caller (the sponsored user) — present when ok. */
   caller?: string;
+  /** Decoded contract method name — present when ok. */
   method?: string;
 }
 
 /**
- * Validates that the inner tx is exactly what a relayer should sign/pay for:
- * a single invoke-contract op against a known contract, a `*_sponsored` method,
- * with the sponsor as the first argument and the caller (sponsored user) second.
- * The inner-tx source is the USER (the fee-bump fee source is the sponsor), so
- * the source is intentionally not required to be the sponsor here.
+ * Enforces that the transaction is exactly what a relayer should ever pay for:
+ * sourced by the sponsor, a single invoke-contract op against a known contract,
+ * a `*_sponsored` method, with the sponsor as the first argument.
  */
-function validateSponsoredTx(
-  tx: ReturnType<typeof TransactionBuilder.fromXDR>,
-  sponsor: string,
-): Validation {
+function validateSponsoredTx(tx: ReturnType<typeof TransactionBuilder.fromXDR>, sponsor: string): Validation {
+  // Narrow away the fee-bump case (already handled by caller).
   const inner = tx as unknown as {
+    source: string;
     operations: { type: string; func?: xdr.HostFunction }[];
   };
 
+  if (inner.source !== sponsor) {
+    return { ok: false, reason: 'Transaction is not sourced by the sponsor' };
+  }
   if (!Array.isArray(inner.operations) || inner.operations.length !== 1) {
     return { ok: false, reason: 'Exactly one operation is required' };
   }
+
   const op = inner.operations[0];
   if (op.type !== 'invokeHostFunction' || !op.func) {
     return { ok: false, reason: 'Operation must be invokeHostFunction' };
@@ -284,6 +240,9 @@ function validateSponsoredTx(
     return { ok: false, reason: `Method ${fnName} is not a sponsored entry point` };
   }
 
+  // First contract argument must be the sponsor address (matches the contract's
+  // `sponsor.require_auth()` accounting). The second argument is the sponsored
+  // user (caller/sender), used for per-address rate limiting.
   const args = invoke.args();
   if (args.length < 2) {
     return { ok: false, reason: 'Sponsored call is missing the sponsor/caller arguments' };
