@@ -26,7 +26,7 @@ export default function DashboardPage() {
           <MessagesSquare className="h-7 w-7 text-[var(--accent)]" strokeWidth={1.75} aria-hidden />
         </div>
         <div>
-          <h1 className="font-mono text-xl font-black tracking-tight text-white">
+          <h1 className="font-mono text-xl font-black tracking-tight text-[var(--text)]">
             Welcome to dMessage
           </h1>
           <p className="mt-2 max-w-xs font-mono text-xs leading-relaxed text-[var(--text-muted)]">
