@@ -127,7 +127,7 @@
             "data": {
               "vec": [
                 {
-                  "string": "caught panic 'encryption_pubkey must be 32 bytes' from contract function 'Symbol(obj#13)'"
+                  "string": "caught panic 'encryption_pubkey length out of range' from contract function 'Symbol(obj#13)'"
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
@@ -300,7 +300,7 @@
             "data": {
               "vec": [
                 {
-                  "string": "caught panic 'encryption_pubkey must be 32 bytes' from contract function 'Symbol(obj#27)'"
+                  "string": "caught panic 'encryption_pubkey length out of range' from contract function 'Symbol(obj#27)'"
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"

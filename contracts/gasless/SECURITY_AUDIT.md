@@ -99,7 +99,16 @@ three contracts, using a 30-day extension window
 empty, for `encryption_pubkey`. X25519 public keys must be exactly 32 bytes; a
 malformed or empty key silently breaks E2EE for anyone messaging that user.
 
-**Fix.** Enforce `encryption_pubkey.len() == 32`; otherwise the call panics.
+**Fix.** Reject empty or oversized `encryption_pubkey`: require `32 <= len <= 128`
+bytes. The on-chain key is opaque to the contract; the frontend uses Web Crypto
+ECDH **P-256** exported as SPKI/DER (~91 bytes), so an exact 32-byte (X25519)
+check is wrong for this app — the bound rejects the real E2EE-breaking case (an
+empty key) and oversized blobs while accepting the actual key format.
+
+> Note: an earlier hardened build pinned the length to exactly 32 bytes, which
+> rejected the frontend's 91-byte P-256 SPKI keys and caused `register_user` to
+> trap. That build is listed under Deprecated; the in-use build uses the bounded
+> check above.
 
 ### M-3 — No username uniqueness → impersonation (user_registry_gasless)
 

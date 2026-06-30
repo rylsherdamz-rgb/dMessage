@@ -25,9 +25,14 @@
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Bytes, Env, String};
 
-/// X25519 public keys are exactly 32 bytes (M-2). Empty/wrong-length keys would
-/// silently break end-to-end encryption for anyone messaging this user.
-const PUBKEY_LEN: u32 = 32;
+/// The published encryption public key is opaque to the contract. The frontend
+/// uses Web Crypto ECDH P-256 exported as SPKI/DER (~91 bytes); other schemes
+/// (e.g. raw X25519 = 32 bytes, raw P-256 point = 65 bytes) differ. We therefore
+/// only enforce that the key is non-empty (so E2EE isn't silently broken by an
+/// empty key — the M-2 concern) and bounded in size (anti-bloat), rather than
+/// pinning one exact length.
+const MIN_PUBKEY_LEN: u32 = 32;
+const MAX_PUBKEY_LEN: u32 = 128;
 /// Bounds on user-supplied strings/blobs to keep entries small.
 const MAX_USERNAME_LEN: u32 = 64;
 const MAX_METADATA_LEN: u32 = 128;
@@ -121,9 +126,10 @@ impl UserRegistry {
         encryption_pubkey: Bytes,
         metadata_ipfs: Bytes,
     ) {
-        // M-2: enforce a valid X25519 public key length.
-        if encryption_pubkey.len() != PUBKEY_LEN {
-            panic!("encryption_pubkey must be 32 bytes");
+        // M-2: reject empty / oversized keys (an empty key silently breaks E2EE).
+        let pk_len = encryption_pubkey.len();
+        if pk_len < MIN_PUBKEY_LEN || pk_len > MAX_PUBKEY_LEN {
+            panic!("encryption_pubkey length out of range");
         }
         // Bound user-supplied fields.
         let uname_len = username.len();
@@ -289,6 +295,23 @@ mod test {
             );
         }));
         assert!(short.is_err(), "short pubkey must be rejected");
+    }
+
+    // Regression: the frontend publishes a Web Crypto ECDH P-256 key as SPKI/DER
+    // (~91 bytes). That must be accepted (it is not 32 bytes).
+    #[test]
+    fn test_register_accepts_p256_spki_pubkey() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register_contract(None, UserRegistry);
+        let client = UserRegistryClient::new(&env, &contract_id);
+
+        let caller = Address::generate(&env);
+        let spki = Bytes::from_array(&env, &[7u8; 91]); // 91-byte SPKI-sized key
+        client.register_user(&caller, &String::from_str(&env, "gemini"), &spki, &Bytes::new(&env));
+
+        let profile = client.get_user(&caller).unwrap();
+        assert_eq!(profile.encryption_pubkey.len(), 91);
     }
 
     // M-2: empty username is rejected.

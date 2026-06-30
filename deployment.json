@@ -3,14 +3,14 @@
   "deployed_at": "2026-06-30T09:49:50Z",
   "git_commit": "d6237da",
   "git_note": "Audited gasless source on branch level6 (see contracts/gasless/SECURITY_AUDIT.md). Deployed from the working tree; this commit contains the exact deployed source for reproducible verification.",
-  "feature": "Security-hardened gasless contracts (audit fixes H-1, H-2, M-1..M-3, L-1..L-4) — fee-sponsored transactions via Stellar fee-bump",
+  "feature": "Security-hardened gasless contracts (audit fixes H-1, H-2, M-1..M-3, L-1..L-4) — fee-sponsored transactions via Stellar fee-bump. UserRegistry redeployed with relaxed pubkey-length validation (accepts the frontend's P-256 SPKI keys).",
   "deployer": "GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM",
   "contracts": {
     "user_registry": {
-      "id": "CCJO373LK257MCNEEQ24NWLL34RN34HBASNN3ASP7SBZKCA4YSUAKOF2",
-      "wasm_sha256": "dbd3df271dd71f33ef8984266fca44251e5db103b018c63b453f4c6b55d88988",
+      "id": "CDHJHY3LQWJM3PPKGFA6QRDUK2JQU5DQEBFKL42I3UEZNNM6IRFF76DJ",
+      "wasm_sha256": "053d3a283dc2fdd605f53420e1f169adc0036b8edbcab16ef38139637ccc5627",
       "src": "contracts/gasless/user_registry_gasless/src/lib.rs",
-      "deploy_tx": "8bb1016baeb04727f2a8589f684bb74802c614aac9e106634c9ec57d2c64ad69"
+      "note": "M-2 pubkey validation relaxed to non-empty + <=128 bytes to accept Web Crypto ECDH P-256 SPKI keys (~91 bytes)."
     },
     "social_graph": {
       "id": "CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK",
@@ -27,6 +27,12 @@
   },
   "deprecated": {
     "note": "Superseded contracts kept for reference and on-chain history; no longer used by the frontend.",
+    "audited_user_registry_strict_pubkey": {
+      "id": "CCJO373LK257MCNEEQ24NWLL34RN34HBASNN3ASP7SBZKCA4YSUAKOF2",
+      "wasm_sha256": "dbd3df271dd71f33ef8984266fca44251e5db103b018c63b453f4c6b55d88988",
+      "src": "contracts/gasless/user_registry_gasless/src/lib.rs",
+      "note": "Audited build that required exactly 32-byte pubkeys; rejected the frontend's 91-byte P-256 SPKI keys. Replaced by the relaxed-validation build now in use."
+    },
     "gasless_v1_pre_audit_user_registry": {
       "id": "CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG",
       "wasm_sha256": "1565c6a47be7c5a04496764d56348e98e0f9f243046e42442a788cd13460cf4c",

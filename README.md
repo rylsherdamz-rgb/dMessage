@@ -195,11 +195,11 @@ sponsorship (`get_sponsored_count`, `Sponsored` event). Source lives in
 
 | Contract | Address | WASM Hash (SHA256) |
 |----------|---------|-------------------|
-| UserRegistry (gasless) | `CCJO373LK257MCNEEQ24NWLL34RN34HBASNN3ASP7SBZKCA4YSUAKOF2` | `dbd3df271dd71f33ef8984266fca44251e5db103b018c63b453f4c6b55d88988` |
+| UserRegistry (gasless) | `CDHJHY3LQWJM3PPKGFA6QRDUK2JQU5DQEBFKL42I3UEZNNM6IRFF76DJ` | `053d3a283dc2fdd605f53420e1f169adc0036b8edbcab16ef38139637ccc5627` |
 | SocialGraph (gasless) | `CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK` | `435836ec67d6ae80557ff606ee80f6178fbd30a3cc6fc79956b46c486d56ad6a` |
 | MessageContract (gasless) | `CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO` | `9133e011abaa8537d6f271378b3920f884976c94adcf4445f1b6f051cb5af26a` |
 
-Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CCJO373LK257MCNEEQ24NWLL34RN34HBASNN3ASP7SBZKCA4YSUAKOF2) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK) · [Messages](https://stellar.expert/explorer/testnet/contract/CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO)
+Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CDHJHY3LQWJM3PPKGFA6QRDUK2JQU5DQEBFKL42I3UEZNNM6IRFF76DJ) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK) · [Messages](https://stellar.expert/explorer/testnet/contract/CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO)
 
 The gasless contracts were deployed by account [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM).
 
@@ -210,6 +210,7 @@ verification, but the frontend no longer points to them.
 
 | Contract | Address | WASM Hash (SHA256) | Status |
 |----------|---------|-------------------|--------|
+| UserRegistry (audited, strict 32-byte pubkey) | `CCJO373LK257MCNEEQ24NWLL34RN34HBASNN3ASP7SBZKCA4YSUAKOF2` | `dbd3df271dd71f33ef8984266fca44251e5db103b018c63b453f4c6b55d88988` | deprecated |
 | UserRegistry (gasless v1, pre-audit) | `CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG` | `1565c6a47be7c5a04496764d56348e98e0f9f243046e42442a788cd13460cf4c` | deprecated |
 | SocialGraph (gasless v1, pre-audit) | `CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q` | `2eebe3418e6e78b2c471d88e6136d77cf2a4f957c7221b4e15b2575b0a6a5724` | deprecated |
 | MessageContract (gasless v1, pre-audit) | `CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3` | `64194f4ea00d6970a4819d1977c700163f2d9df75f242ad139e7e49e15baa995` | deprecated |
