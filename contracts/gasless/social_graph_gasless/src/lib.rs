@@ -22,6 +22,16 @@
 use soroban_sdk::xdr::ToXdr;
 use soroban_sdk::{contract, contractimpl, contracttype, Address, BytesN, Env, Vec};
 
+/// Upper bound on a single user's conversation list. With the participant-auth
+/// check (H-2) a third party can no longer inflate someone else's list, but this
+/// cap is defense in depth so the per-user entry cannot grow without bound.
+const MAX_CONVERSATIONS: u32 = 1024;
+
+// --- persistent-entry TTL management (M-1) ---
+const DAY_IN_LEDGERS: u32 = 17_280; // ~5s ledgers
+const BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
+const LIFETIME_THRESHOLD: u32 = BUMP_AMOUNT - DAY_IN_LEDGERS;
+
 #[derive(Clone)]
 #[contracttype]
 pub struct ConversationRef {
@@ -62,6 +72,9 @@ impl SocialGraph {
         user_b: Address,
     ) -> BytesN<32> {
         caller.require_auth();
+        // H-2: only a participant may create/update a conversation, so a third
+        // party cannot inject unsolicited refs into other users' lists.
+        Self::require_participant(&caller, &user_a, &user_b);
         Self::ensure_internal(&env, &user_a, &user_b)
     }
 
@@ -79,6 +92,9 @@ impl SocialGraph {
     ) -> BytesN<32> {
         sponsor.require_auth();
         caller.require_auth();
+
+        // H-2: the authorizing caller must be one of the participants.
+        Self::require_participant(&caller, &user_a, &user_b);
 
         let id = Self::ensure_internal(&env, &user_a, &user_b);
         Self::record_sponsorship(&env, &sponsor, &caller);
@@ -101,6 +117,13 @@ impl SocialGraph {
     }
 
     // --- internal helpers ---
+
+    /// H-2 guard: the authorizing `caller` must be one of the two participants.
+    fn require_participant(caller: &Address, user_a: &Address, user_b: &Address) {
+        if caller != user_a && caller != user_b {
+            panic!("caller must be a conversation participant");
+        }
+    }
 
     fn ensure_internal(env: &Env, user_a: &Address, user_b: &Address) -> BytesN<32> {
         let (addr1, addr2) = if user_a < user_b {
@@ -138,6 +161,9 @@ impl SocialGraph {
             conv.last_updated = timestamp;
             env.storage().persistent().set(&conv_key, &conv);
         }
+        env.storage()
+            .persistent()
+            .extend_ttl(&conv_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
 
         Self::add_user_conversation(env, user_a, user_b, &conversation_id, timestamp);
         Self::add_user_conversation(env, user_b, user_a, &conversation_id, timestamp);
@@ -173,6 +199,10 @@ impl SocialGraph {
         }
 
         if !found {
+            // Defense in depth: bound the per-user list size.
+            if convs.len() >= MAX_CONVERSATIONS {
+                panic!("conversation limit reached");
+            }
             convs.push_back(ConversationRef {
                 conversation_id: conv_id.clone(),
                 peer_address: peer.clone(),
@@ -181,12 +211,18 @@ impl SocialGraph {
         }
 
         env.storage().persistent().set(&key, &convs);
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
     }
 
     fn record_sponsorship(env: &Env, sponsor: &Address, user: &Address) {
         let key = DataKey::SponsoredCount(sponsor.clone());
         let count: u32 = env.storage().persistent().get(&key).unwrap_or(0);
         env.storage().persistent().set(&key, &(count + 1));
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
 
         env.events().publish(
             ("Sponsored", sponsor.clone(), user.clone()),
@@ -215,25 +251,25 @@ mod test {
     #[test]
     fn test_ensure_conversation_deterministic_id() {
         let (env, client) = setup_env();
-        let caller = Address::generate(&env);
         let alice = Address::generate(&env);
         let bob = Address::generate(&env);
 
-        let id1 = client.ensure_conversation(&caller, &alice, &bob);
-        let id2 = client.ensure_conversation(&caller, &alice, &bob);
+        // Caller must be a participant (H-2).
+        let id1 = client.ensure_conversation(&alice, &alice, &bob);
+        let id2 = client.ensure_conversation(&alice, &alice, &bob);
         assert_eq!(id1, id2);
-        let id3 = client.ensure_conversation(&caller, &bob, &alice);
+        // Order of participants does not change the id; bob may also be the caller.
+        let id3 = client.ensure_conversation(&bob, &bob, &alice);
         assert_eq!(id1, id3);
     }
 
     #[test]
     fn test_get_user_conversations_for_participants() {
         let (env, client) = setup_env();
-        let caller = Address::generate(&env);
         let alice = Address::generate(&env);
         let bob = Address::generate(&env);
 
-        client.ensure_conversation(&caller, &alice, &bob);
+        client.ensure_conversation(&alice, &alice, &bob);
 
         let alice_convs = client.get_user_conversations(&alice);
         let bob_convs = client.get_user_conversations(&bob);
@@ -243,6 +279,39 @@ mod test {
             alice_convs.get(0).unwrap().conversation_id,
             bob_convs.get(0).unwrap().conversation_id
         );
+    }
+
+    // H-2: a non-participant caller (even with auth) must be rejected, so nobody
+    // can inject unsolicited conversation refs into other users' lists.
+    #[test]
+    fn test_ensure_conversation_rejects_non_participant() {
+        let (env, client) = setup_env();
+        let attacker = Address::generate(&env);
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            client.ensure_conversation(&attacker, &alice, &bob);
+        }));
+        assert!(result.is_err(), "non-participant caller must be rejected");
+
+        // The victims' lists remain untouched.
+        assert_eq!(client.get_user_conversations(&alice).len(), 0);
+        assert_eq!(client.get_user_conversations(&bob).len(), 0);
+    }
+
+    #[test]
+    fn test_ensure_conversation_sponsored_rejects_non_participant() {
+        let (env, client) = setup_env();
+        let sponsor = Address::generate(&env);
+        let attacker = Address::generate(&env);
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            client.ensure_conversation_sponsored(&sponsor, &attacker, &alice, &bob);
+        }));
+        assert!(result.is_err(), "non-participant caller must be rejected");
     }
 
     #[test]

@@ -1,31 +1,50 @@
 {
   "network": "testnet",
-  "deployed_at": "2026-06-29T23:49:04Z",
-  "git_commit": "50cbb46d350c2d6e3fc009f2ffc1bde00a118532",
-  "feature": "Fee Sponsorship — gasless transactions via Stellar fee-bump",
+  "deployed_at": "2026-06-30T09:49:50Z",
+  "git_commit": "912e387e6d926a70750f5a3612ca88a890143d40",
+  "git_note": "Deployed from the security-hardened working tree on branch level6 (see contracts/gasless/SECURITY_AUDIT.md). Source changes pending commit at deploy time.",
+  "feature": "Security-hardened gasless contracts (audit fixes H-1, H-2, M-1..M-3, L-1..L-4) — fee-sponsored transactions via Stellar fee-bump",
   "deployer": "GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM",
   "contracts": {
     "user_registry": {
-      "id": "CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG",
-      "wasm_sha256": "1565c6a47be7c5a04496764d56348e98e0f9f243046e42442a788cd13460cf4c",
+      "id": "CCJO373LK257MCNEEQ24NWLL34RN34HBASNN3ASP7SBZKCA4YSUAKOF2",
+      "wasm_sha256": "dbd3df271dd71f33ef8984266fca44251e5db103b018c63b453f4c6b55d88988",
       "src": "contracts/gasless/user_registry_gasless/src/lib.rs",
-      "deploy_tx": "0ce5aaaf59bb8ef472bd965eb0e0c4d0697271d52fc7f98ccb35ade5b0f70a22"
+      "deploy_tx": "8bb1016baeb04727f2a8589f684bb74802c614aac9e106634c9ec57d2c64ad69"
     },
     "social_graph": {
-      "id": "CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q",
-      "wasm_sha256": "2eebe3418e6e78b2c471d88e6136d77cf2a4f957c7221b4e15b2575b0a6a5724",
+      "id": "CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK",
+      "wasm_sha256": "435836ec67d6ae80557ff606ee80f6178fbd30a3cc6fc79956b46c486d56ad6a",
       "src": "contracts/gasless/social_graph_gasless/src/lib.rs",
-      "deploy_tx": "ac745cf9b49a15d329428e8ad761b1c82926df285b4ad9e49dc9cdc2822e536c"
+      "deploy_tx": "8500bf9f0a0108363aeb5170bc96815e7565bf45278eabcef38d49da7b61463b"
     },
     "messages": {
-      "id": "CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3",
-      "wasm_sha256": "64194f4ea00d6970a4819d1977c700163f2d9df75f242ad139e7e49e15baa995",
+      "id": "CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO",
+      "wasm_sha256": "9133e011abaa8537d6f271378b3920f884976c94adcf4445f1b6f051cb5af26a",
       "src": "contracts/gasless/messages_gasless/src/lib.rs",
-      "deploy_tx": "9ebbd2f6eb9644538309d52bd6663756221da11d837f761359def8fd2895bebe"
+      "deploy_tx": "1f466d02fbae1244d7cf38c726fcef883478ab991d64eaabb1c25f5e2949848f"
     }
   },
   "deprecated": {
-    "note": "Pre-gasless contracts. Kept for reference and on-chain history; no longer used by the frontend.",
+    "note": "Superseded contracts kept for reference and on-chain history; no longer used by the frontend.",
+    "gasless_v1_pre_audit_user_registry": {
+      "id": "CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG",
+      "wasm_sha256": "1565c6a47be7c5a04496764d56348e98e0f9f243046e42442a788cd13460cf4c",
+      "src": "contracts/gasless/user_registry_gasless/src/lib.rs",
+      "note": "First gasless build, before the security audit hardening."
+    },
+    "gasless_v1_pre_audit_social_graph": {
+      "id": "CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q",
+      "wasm_sha256": "2eebe3418e6e78b2c471d88e6136d77cf2a4f957c7221b4e15b2575b0a6a5724",
+      "src": "contracts/gasless/social_graph_gasless/src/lib.rs",
+      "note": "First gasless build, before the security audit hardening."
+    },
+    "gasless_v1_pre_audit_messages": {
+      "id": "CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3",
+      "wasm_sha256": "64194f4ea00d6970a4819d1977c700163f2d9df75f242ad139e7e49e15baa995",
+      "src": "contracts/gasless/messages_gasless/src/lib.rs",
+      "note": "First gasless build, before the security audit hardening."
+    },
     "user_registry": {
       "id": "CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA",
       "wasm_sha256": "000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964",

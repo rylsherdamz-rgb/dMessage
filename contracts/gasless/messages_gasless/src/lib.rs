@@ -18,8 +18,27 @@
 //! `mark_as_read` already work under it. The `*_sponsored` variants add on-chain
 //! sponsorship accounting: the sponsor co-authorizes, each action is counted per
 //! sponsor, and a `Sponsored` event is emitted.
+//!
+//! ## Security hardening (see contracts/gasless/SECURITY_AUDIT.md)
+//!
+//! - **H-1 / L-2:** the inbox is stored as indexed per-message entries
+//!   (`MsgCount` + `Msg(addr, index)`) instead of one growing `Vec`. Sends,
+//!   reads, and mark-as-read are O(1)/O(page) and no single entry grows without
+//!   bound, closing the "spam until the inbox bricks" DoS.
+//! - **L-3:** pagination uses saturating arithmetic.
+//! - **L-4:** message content is capped (on-chain payload is only an IPFS CID).
+//! - **M-1:** persistent entries have their TTL bumped on write.
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Bytes, Env, Vec};
+
+/// Maximum on-chain message payload. The contract only stores an IPFS CID, which
+/// is well under this; the cap prevents storage griefing / oversized entries.
+const MAX_CONTENT_LEN: u32 = 256;
+
+// --- persistent-entry TTL management (M-1) ---
+const DAY_IN_LEDGERS: u32 = 17_280; // ~5s ledgers
+const BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
+const LIFETIME_THRESHOLD: u32 = BUMP_AMOUNT - DAY_IN_LEDGERS;
 
 #[derive(Clone)]
 #[contracttype]
@@ -30,12 +49,16 @@ pub struct InboxMessage {
     pub read: bool,
 }
 
-/// Namespaced storage keys. A bare `Address` is reused as both an inbox owner and
-/// a sponsor counter, so the two must be distinguished.
+/// Namespaced storage keys.
+///
+/// The inbox is intentionally **not** a single `Vec`: each message lives under its
+/// own `Msg(owner, index)` key and `MsgCount(owner)` tracks the length. This keeps
+/// every write O(1) and bounds the size of any single ledger entry (H-1).
 #[derive(Clone)]
 #[contracttype]
 pub enum DataKey {
-    Inbox(Address),
+    MsgCount(Address),
+    Msg(Address, u32),
     SponsoredCount(Address),
 }
 
@@ -70,40 +93,33 @@ impl MessageContract {
     }
 
     pub fn get_messages(env: Env, user: Address, page: u32, page_size: u32) -> Vec<InboxMessage> {
-        let inbox: Vec<InboxMessage> = env
-            .storage()
-            .persistent()
-            .get(&DataKey::Inbox(user))
-            .unwrap_or_else(|| Vec::new(&env));
+        let total = Self::count(&env, &user);
 
-        let total = inbox.len() as u32;
-        let start = page * page_size;
-        let end = if start + page_size > total {
-            total
-        } else {
-            start + page_size
-        };
-
+        // L-3: saturating arithmetic so attacker-supplied page/page_size cannot
+        // overflow-panic.
+        let start = page.saturating_mul(page_size);
         if start >= total {
             return Vec::new(&env);
         }
+        let end = core::cmp::min(start.saturating_add(page_size), total);
 
         let mut result = Vec::new(&env);
         let mut i = start;
         while i < end {
-            result.push_back(inbox.get(i).unwrap());
+            if let Some(msg) = env
+                .storage()
+                .persistent()
+                .get::<DataKey, InboxMessage>(&DataKey::Msg(user.clone(), i))
+            {
+                result.push_back(msg);
+            }
             i += 1;
         }
         result
     }
 
     pub fn my_message_count(env: Env, user: Address) -> u32 {
-        let inbox: Vec<InboxMessage> = env
-            .storage()
-            .persistent()
-            .get(&DataKey::Inbox(user))
-            .unwrap_or_else(|| Vec::new(&env));
-        inbox.len() as u32
+        Self::count(&env, &user)
     }
 
     /// Standard self-paid mark-as-read (or transparently fee-bumped).
@@ -131,24 +147,43 @@ impl MessageContract {
 
     // --- internal helpers ---
 
-    fn write_message(env: &Env, sender: &Address, recipient: &Address, content: Bytes) {
-        let timestamp = env.ledger().timestamp();
-        let key = DataKey::Inbox(recipient.clone());
-
-        let mut inbox: Vec<InboxMessage> = env
-            .storage()
+    fn count(env: &Env, owner: &Address) -> u32 {
+        env.storage()
             .persistent()
-            .get(&key)
-            .unwrap_or_else(|| Vec::new(env));
+            .get(&DataKey::MsgCount(owner.clone()))
+            .unwrap_or(0)
+    }
 
-        inbox.push_back(InboxMessage {
-            sender: sender.clone(),
-            content,
-            timestamp,
-            read: false,
-        });
+    fn write_message(env: &Env, sender: &Address, recipient: &Address, content: Bytes) {
+        // L-4: bound the on-chain payload (it is only an IPFS CID).
+        if content.len() > MAX_CONTENT_LEN {
+            panic!("content exceeds maximum length");
+        }
 
-        env.storage().persistent().set(&key, &inbox);
+        let timestamp = env.ledger().timestamp();
+        let index = Self::count(env, recipient);
+
+        let msg_key = DataKey::Msg(recipient.clone(), index);
+        env.storage().persistent().set(
+            &msg_key,
+            &InboxMessage {
+                sender: sender.clone(),
+                content,
+                timestamp,
+                read: false,
+            },
+        );
+        env.storage()
+            .persistent()
+            .extend_ttl(&msg_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
+
+        let count_key = DataKey::MsgCount(recipient.clone());
+        // index + 1 cannot overflow before storage limits are hit; overflow-checks
+        // would panic safely regardless.
+        env.storage().persistent().set(&count_key, &(index + 1));
+        env.storage()
+            .persistent()
+            .extend_ttl(&count_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
 
         env.events().publish(
             ("MessageSent", sender.clone(), recipient.clone()),
@@ -157,18 +192,28 @@ impl MessageContract {
     }
 
     fn set_read(env: &Env, caller: &Address, index: u32) {
-        let key = DataKey::Inbox(caller.clone());
-        let mut inbox: Vec<InboxMessage> = env.storage().persistent().get(&key).unwrap();
-        let mut msg = inbox.get(index).unwrap();
+        // L-2: bounds-check against the count instead of unwrapping absent data.
+        let total = Self::count(env, caller);
+        if index >= total {
+            panic!("message index out of range");
+        }
+
+        let msg_key = DataKey::Msg(caller.clone(), index);
+        let mut msg: InboxMessage = env.storage().persistent().get(&msg_key).unwrap();
         msg.read = true;
-        inbox.set(index, msg);
-        env.storage().persistent().set(&key, &inbox);
+        env.storage().persistent().set(&msg_key, &msg);
+        env.storage()
+            .persistent()
+            .extend_ttl(&msg_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
     }
 
     fn record_sponsorship(env: &Env, sponsor: &Address, user: &Address) {
         let key = DataKey::SponsoredCount(sponsor.clone());
         let count: u32 = env.storage().persistent().get(&key).unwrap_or(0);
         env.storage().persistent().set(&key, &(count + 1));
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
 
         env.events().publish(
             ("Sponsored", sponsor.clone(), user.clone()),
@@ -252,6 +297,91 @@ mod test {
             client.send_message(&alice, &bob, &make_content(&env, b"no auth"));
         }));
         assert!(result.is_err());
+    }
+
+    // --- ordering / pagination / isolation regression tests ---
+
+    #[test]
+    fn test_get_messages_ordering_and_pagination() {
+        let (env, client) = setup_env();
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+
+        client.send_message(&alice, &bob, &make_content(&env, b"m0"));
+        client.send_message(&alice, &bob, &make_content(&env, b"m1"));
+        client.send_message(&alice, &bob, &make_content(&env, b"m2"));
+        client.send_message(&alice, &bob, &make_content(&env, b"m3"));
+
+        // First page preserves insertion order.
+        let page0 = client.get_messages(&bob, &0u32, &2u32);
+        assert_eq!(page0.len(), 2);
+        assert_eq!(page0.get(0).unwrap().content, make_content(&env, b"m0"));
+        assert_eq!(page0.get(1).unwrap().content, make_content(&env, b"m1"));
+
+        // Second page continues from where the first ended.
+        let page1 = client.get_messages(&bob, &1u32, &2u32);
+        assert_eq!(page1.len(), 2);
+        assert_eq!(page1.get(0).unwrap().content, make_content(&env, b"m2"));
+        assert_eq!(page1.get(1).unwrap().content, make_content(&env, b"m3"));
+
+        // Page past the end is empty, not a panic.
+        assert_eq!(client.get_messages(&bob, &5u32, &2u32).len(), 0);
+    }
+
+    #[test]
+    fn test_inbox_isolation() {
+        let (env, client) = setup_env();
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+        let carol = Address::generate(&env);
+
+        client.send_message(&alice, &bob, &make_content(&env, b"to bob"));
+        assert_eq!(client.my_message_count(&bob), 1);
+        assert_eq!(client.my_message_count(&carol), 0);
+        assert_eq!(client.get_messages(&carol, &0u32, &10u32).len(), 0);
+    }
+
+    // L-3: huge page/page_size must not overflow-panic, just return empty.
+    #[test]
+    fn test_get_messages_pagination_no_overflow() {
+        let (env, client) = setup_env();
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+        client.send_message(&alice, &bob, &make_content(&env, b"hi"));
+
+        let msgs = client.get_messages(&bob, &u32::MAX, &u32::MAX);
+        assert_eq!(msgs.len(), 0);
+    }
+
+    // L-4: oversized content is rejected.
+    #[test]
+    fn test_send_message_rejects_oversized_content() {
+        let (env, client) = setup_env();
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+        let big = Bytes::from_slice(&env, &[0u8; (MAX_CONTENT_LEN + 1) as usize]);
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            client.send_message(&alice, &bob, &big);
+        }));
+        assert!(result.is_err(), "oversized content should be rejected");
+
+        // A payload exactly at the cap is accepted.
+        let at_cap = Bytes::from_slice(&env, &[0u8; MAX_CONTENT_LEN as usize]);
+        client.send_message(&alice, &bob, &at_cap);
+        assert_eq!(client.my_message_count(&bob), 1);
+    }
+
+    // L-2: marking a non-existent index must panic with a guard, not unwrap garbage.
+    #[test]
+    fn test_mark_as_read_out_of_range_panics() {
+        let (env, client) = setup_env();
+        let bob = Address::generate(&env);
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            client.mark_as_read(&bob, &0u32); // empty inbox
+        }));
+        assert!(result.is_err(), "mark_as_read on empty inbox should panic");
     }
 
     // --- gasless / fee-sponsorship tests ---
