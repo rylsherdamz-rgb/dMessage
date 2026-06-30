@@ -21,7 +21,7 @@ import { Buffer } from 'node:buffer';
 
 const RPC_URL = 'https://soroban-testnet.stellar.org';
 const PASSPHRASE = 'Test SDF Network ; September 2015';
-const MESSAGES_ID = 'CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3';
+const MESSAGES_ID = 'CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO';
 
 const server = new rpc.Server(RPC_URL);
 

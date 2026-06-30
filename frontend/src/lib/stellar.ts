@@ -11,12 +11,20 @@ export function getSorobanServer(): rpc.Server {
   return _server;
 }
 
-// Current deployment: gasless / fee-sponsored contracts.
-// Previous non-gasless contracts are deprecated — see README "Deprecated Contracts".
+// Current deployment: security-hardened gasless / fee-sponsored contracts.
+// Resolved from env (injected from deployment.json via next.config.ts, or set in
+// .env.local); the fallbacks are the current audited testnet addresses so the app
+// works even without env. Previous contracts are deprecated — see README.
 export const CONTRACT_IDS = {
-  userRegistry: 'CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG',
-  socialGraph: 'CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q',
-  messages: 'CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3',
+  userRegistry:
+    process.env.NEXT_PUBLIC_CONTRACT_USER_REGISTRY ??
+    'CCJO373LK257MCNEEQ24NWLL34RN34HBASNN3ASP7SBZKCA4YSUAKOF2',
+  socialGraph:
+    process.env.NEXT_PUBLIC_CONTRACT_SOCIAL_GRAPH ??
+    'CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK',
+  messages:
+    process.env.NEXT_PUBLIC_CONTRACT_MESSAGES ??
+    'CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO',
 } as const;
 
 export const NETWORK_PASSPHRASE = Networks.TESTNET;
