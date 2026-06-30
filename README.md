@@ -229,7 +229,7 @@ Anyone can verify the **current (gasless)** contracts by rebuilding from source:
 
 ```bash
 # 1. Clone the repo at the deployment commit (audited gasless build, branch level6)
-git checkout d6237da
+git checkout 4b40a6d
 
 # 2. Build each gasless contract (wasm32v1-none)
 cd contracts/gasless/user_registry_gasless && stellar contract build && cd -

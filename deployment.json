@@ -1,7 +1,7 @@
 {
   "network": "testnet",
   "deployed_at": "2026-06-30T09:49:50Z",
-  "git_commit": "d6237da",
+  "git_commit": "4b40a6d",
   "git_note": "Audited gasless source on branch level6 (see contracts/gasless/SECURITY_AUDIT.md). Deployed from the working tree; this commit contains the exact deployed source for reproducible verification.",
   "feature": "Security-hardened gasless contracts (audit fixes H-1, H-2, M-1..M-3, L-1..L-4) — fee-sponsored transactions via Stellar fee-bump. UserRegistry redeployed with relaxed pubkey-length validation (accepts the frontend's P-256 SPKI keys).",
   "deployer": "GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM",
