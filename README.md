@@ -186,13 +186,20 @@ XLM. Each state-changing function has a `*_sponsored` variant that records on-ch
 sponsorship (`get_sponsored_count`, `Sponsored` event). Source lives in
 [`contracts/gasless/`](contracts/gasless).
 
+> **Security-hardened build.** These are the audited versions (see
+> [`contracts/gasless/SECURITY_AUDIT.md`](contracts/gasless/SECURITY_AUDIT.md)):
+> indexed inbox storage (no unbounded-growth DoS), participant-only conversation
+> creation, persistent-entry TTL bumping, 32-byte pubkey validation, global
+> username uniqueness, and message/field size caps. The earlier (pre-audit)
+> gasless build is listed under [Deprecated](#deprecated-contracts-kept-for-reference-no-longer-used).
+
 | Contract | Address | WASM Hash (SHA256) |
 |----------|---------|-------------------|
-| UserRegistry (gasless) | `CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG` | `1565c6a47be7c5a04496764d56348e98e0f9f243046e42442a788cd13460cf4c` |
-| SocialGraph (gasless) | `CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q` | `2eebe3418e6e78b2c471d88e6136d77cf2a4f957c7221b4e15b2575b0a6a5724` |
-| MessageContract (gasless) | `CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3` | `64194f4ea00d6970a4819d1977c700163f2d9df75f242ad139e7e49e15baa995` |
+| UserRegistry (gasless) | `CCJO373LK257MCNEEQ24NWLL34RN34HBASNN3ASP7SBZKCA4YSUAKOF2` | `dbd3df271dd71f33ef8984266fca44251e5db103b018c63b453f4c6b55d88988` |
+| SocialGraph (gasless) | `CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK` | `435836ec67d6ae80557ff606ee80f6178fbd30a3cc6fc79956b46c486d56ad6a` |
+| MessageContract (gasless) | `CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO` | `9133e011abaa8537d6f271378b3920f884976c94adcf4445f1b6f051cb5af26a` |
 
-Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q) · [Messages](https://stellar.expert/explorer/testnet/contract/CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3)
+Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CCJO373LK257MCNEEQ24NWLL34RN34HBASNN3ASP7SBZKCA4YSUAKOF2) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK) · [Messages](https://stellar.expert/explorer/testnet/contract/CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO)
 
 The gasless contracts were deployed by account [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM).
 
@@ -203,12 +210,15 @@ verification, but the frontend no longer points to them.
 
 | Contract | Address | WASM Hash (SHA256) | Status |
 |----------|---------|-------------------|--------|
-| UserRegistry | `CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` | deprecated |
-| SocialGraph | `CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7` | `2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c` | deprecated |
+| UserRegistry (gasless v1, pre-audit) | `CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG` | `1565c6a47be7c5a04496764d56348e98e0f9f243046e42442a788cd13460cf4c` | deprecated |
+| SocialGraph (gasless v1, pre-audit) | `CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q` | `2eebe3418e6e78b2c471d88e6136d77cf2a4f957c7221b4e15b2575b0a6a5724` | deprecated |
+| MessageContract (gasless v1, pre-audit) | `CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3` | `64194f4ea00d6970a4819d1977c700163f2d9df75f242ad139e7e49e15baa995` | deprecated |
+| UserRegistry (non-gasless) | `CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` | deprecated |
+| SocialGraph (non-gasless) | `CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7` | `2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c` | deprecated |
 | MessageContract (v2) | `CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7` | `98221de14f435ac68060c3e7494da96819563467ed46ce78ce8d1e618e1bb51d` | deprecated |
 | MessageContract (v1) | `CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK` | `8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e` | deprecated |
 
-Explorer (deprecated): [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7) · [Messages v2](https://stellar.expert/explorer/testnet/contract/CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7) · [Messages v1](https://stellar.expert/explorer/testnet/contract/CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK)
+Explorer (deprecated): [UserRegistry gasless v1](https://stellar.expert/explorer/testnet/contract/CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG) · [SocialGraph gasless v1](https://stellar.expert/explorer/testnet/contract/CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q) · [Messages gasless v1](https://stellar.expert/explorer/testnet/contract/CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3) · [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7) · [Messages v2](https://stellar.expert/explorer/testnet/contract/CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7) · [Messages v1](https://stellar.expert/explorer/testnet/contract/CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK)
 
 The deprecated contracts were deployed by [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM) (v1) and [`GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH`](https://stellar.expert/explorer/testnet/account/GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH) (v2).
 
@@ -217,8 +227,8 @@ The deprecated contracts were deployed by [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVD
 Anyone can verify the **current (gasless)** contracts by rebuilding from source:
 
 ```bash
-# 1. Clone the repo at the deployment commit
-git checkout 50cbb46
+# 1. Clone the repo at the deployment commit (audited gasless build, branch level6)
+git checkout d6237da
 
 # 2. Build each gasless contract (wasm32v1-none)
 cd contracts/gasless/user_registry_gasless && stellar contract build && cd -

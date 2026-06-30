@@ -1,8 +1,8 @@
 {
   "network": "testnet",
   "deployed_at": "2026-06-30T09:49:50Z",
-  "git_commit": "912e387e6d926a70750f5a3612ca88a890143d40",
-  "git_note": "Deployed from the security-hardened working tree on branch level6 (see contracts/gasless/SECURITY_AUDIT.md). Source changes pending commit at deploy time.",
+  "git_commit": "d6237da",
+  "git_note": "Audited gasless source on branch level6 (see contracts/gasless/SECURITY_AUDIT.md). Deployed from the working tree; this commit contains the exact deployed source for reproducible verification.",
   "feature": "Security-hardened gasless contracts (audit fixes H-1, H-2, M-1..M-3, L-1..L-4) — fee-sponsored transactions via Stellar fee-bump",
   "deployer": "GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM",
   "contracts": {
