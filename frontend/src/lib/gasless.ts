@@ -1,6 +1,5 @@
 'use client';
 
-import { Buffer } from 'buffer';
 import {
   rpc,
   TransactionBuilder,
@@ -8,13 +7,16 @@ import {
   Account,
   Operation,
   Address,
-  authorizeEntry,
   xdr,
 } from 'stellar-sdk';
 import { getSorobanServer, NETWORK_PASSPHRASE } from './stellar';
 import { writeContract } from './soroban';
 
-/** Signs a Soroban auth-entry preimage (base64 XDR) and returns the signature. */
+/**
+ * Legacy auth-entry signer type, kept so existing call sites compile unchanged.
+ * The fee-bump relay flow below no longer needs it — the user signs the whole
+ * inner transaction via `signTransaction` instead — but callers still pass it.
+ */
 export type AuthEntrySigner = (
   preimageXdrBase64: string,
 ) => Promise<{ signature: Buffer; publicKey: string }>;
@@ -52,27 +54,25 @@ export async function getSponsorAddress(): Promise<string | null> {
 }
 
 /**
- * Builds a sponsor-sourced Soroban transaction that invokes a `*_sponsored`
- * contract method, has the connected user sign *only* their own authorization
- * entry, and returns the resulting transaction XDR (still unsigned by the
- * sponsor). The sponsor's own auth is satisfied via source-account credentials,
- * so the relayer only needs to sign the envelope.
+ * Builds the **inner** Soroban transaction for the fee-bump gasless flow:
  *
- * @param sponsor         sponsor/relayer public key (tx source + fee payer)
- * @param contractId      target contract
- * @param sponsoredMethod e.g. "register_user_sponsored"
- * @param userAddress     the connected user (the `caller`/`sender`)
- * @param callerArgs      the args used by the *self-paid* method (caller first);
- *                        the sponsor address is prepended automatically
- * @param signAuthEntry   wallet callback to sign the user's auth entry
+ *  - source account = the USER (so the user authorizes by signing the whole
+ *    inner transaction with `signTransaction` — the same reliable call the
+ *    self-paid path uses, instead of the fragile `signAuthEntry`);
+ *  - the user's Soroban auth entry is converted to *source-account* credentials
+ *    (satisfied by the user's envelope signature);
+ *  - the sponsor's auth entry is left unsigned here — the relayer signs it
+ *    server-side in the `prepare` phase (the sponsor key never touches the
+ *    browser).
+ *
+ * Returns the unsigned inner-tx XDR (with footprint + resource fee attached).
  */
-async function buildSponsoredXdr(
+async function buildInnerTxXdr(
   sponsor: string,
   contractId: string,
   sponsoredMethod: string,
   userAddress: string,
   callerArgs: xdr.ScVal[],
-  signAuthEntry: AuthEntrySigner,
 ): Promise<string> {
   const server = getSorobanServer();
   const contract = new Contract(contractId);
@@ -81,14 +81,13 @@ async function buildSponsoredXdr(
   const fullArgs = [new Address(sponsor).toScVal(), ...callerArgs];
   const op = contract.call(sponsoredMethod, ...fullArgs);
 
-  // Simulate from the sponsor as source (sequence irrelevant for simulation).
-  const simSource = new Account(sponsor, '0');
-  const simTx = new TransactionBuilder(simSource, {
-    fee: '1000000',
+  const sourceForSim = await server.getAccount(userAddress);
+  const simTx = new TransactionBuilder(sourceForSim, {
+    fee: '1000',
     networkPassphrase: NETWORK_PASSPHRASE,
   })
     .addOperation(op)
-    .setTimeout(120)
+    .setTimeout(180)
     .build();
 
   const sim = await server.simulateTransaction(simTx);
@@ -96,68 +95,50 @@ async function buildSponsoredXdr(
     throw new Error(`Simulation failed: ${sim.error}`);
   }
 
-  const { sequence: latestLedger } = await server.getLatestLedger();
-  const validUntil = latestLedger + 100;
-
-  // Sign / convert each required authorization entry.
+  // Convert the user's auth to source-account creds; leave the sponsor's (and
+  // any other) entry for the relayer to sign server-side.
   const rawEntries = sim.result?.auth ?? [];
-  const signedEntries: xdr.SorobanAuthorizationEntry[] = [];
+  const auth: xdr.SorobanAuthorizationEntry[] = [];
   for (const entry of rawEntries) {
     const creds = entry.credentials();
-    // Source-account credentials need no signature (covered by the envelope).
     if (
       creds.switch().value ===
       xdr.SorobanCredentialsType.sorobanCredentialsSourceAccount().value
     ) {
-      signedEntries.push(entry);
+      auth.push(entry);
       continue;
     }
-
     const entryAddr = Address.fromScAddress(creds.address().address()).toString();
-
-    if (entryAddr === sponsor) {
-      // The sponsor is the tx source → use source-account credentials so the
-      // relayer's envelope signature satisfies sponsor.require_auth().
-      signedEntries.push(
+    if (entryAddr === userAddress) {
+      auth.push(
         new xdr.SorobanAuthorizationEntry({
           credentials: xdr.SorobanCredentials.sorobanCredentialsSourceAccount(),
           rootInvocation: entry.rootInvocation(),
         }),
       );
-    } else if (entryAddr === userAddress) {
-      const signed = await authorizeEntry(
-        entry,
-        async (preimage: xdr.HashIdPreimage) => signAuthEntry(preimage.toXDR('base64')),
-        validUntil,
-        NETWORK_PASSPHRASE,
-      );
-      signedEntries.push(signed);
     } else {
-      // Unexpected third-party auth requirement — leave untouched (will fail
-      // loudly at submission rather than silently mis-signing).
-      signedEntries.push(entry);
+      auth.push(entry);
     }
   }
 
-  // Rebuild the operation with the signed auth, attach the simulated Soroban
-  // resource footprint, and set a fee that covers the resource cost.
   const hostFn = op.body().invokeHostFunctionOp().hostFunction();
-  const finalOp = Operation.invokeHostFunction({ func: hostFn, auth: signedEntries });
+  const opWithAuth = Operation.invokeHostFunction({ func: hostFn, auth });
 
-  const inclusionFee = 200_000; // 0.02 XLM buffer on top of the resource fee
-  const totalFee = (Number(sim.minResourceFee) + inclusionFee).toString();
+  // Inner-tx fee must cover the Soroban resource fee; the fee-bump adds the
+  // inclusion fee on top. The sponsor pays both via the fee-bump envelope.
+  const innerFee = (Number(sim.minResourceFee) + 100_000).toString();
 
-  const sponsorAccount = await server.getAccount(sponsor);
-  const finalTx = new TransactionBuilder(sponsorAccount, {
-    fee: totalFee,
+  const source = await server.getAccount(userAddress);
+  const innerTx = new TransactionBuilder(source, {
+    fee: innerFee,
     networkPassphrase: NETWORK_PASSPHRASE,
   })
-    .addOperation(finalOp)
+    .addOperation(opWithAuth)
     .setSorobanData(sim.transactionData.build())
-    .setTimeout(120)
+    .setTimeout(180)
     .build();
 
-  return finalTx.toXDR();
+  return innerTx.toXDR();
 }
 
 interface RelayResult {
@@ -166,28 +147,34 @@ interface RelayResult {
   sponsor: string;
 }
 
-/** Submits a user-authorized sponsored transaction to the relayer for co-signing. */
-async function submitToRelayer(txXdr: string): Promise<RelayResult> {
+async function relayPost<T>(body: Record<string, unknown>): Promise<T> {
   const res = await fetch('/api/relay', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ xdr: txXdr }),
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data.error ?? `Relayer error (${res.status})`);
   }
-  return data as RelayResult;
+  return data as T;
 }
 
 /**
- * Writes to a contract using the gasless / fee-sponsored path when a relayer is
- * configured, otherwise falls back to the user-paid path. Drop-in replacement
- * for `writeContract` with two extra arguments.
+ * Writes to a contract using the gasless / fee-sponsored (fee-bump) path when a
+ * relayer is configured, otherwise falls back to the user-paid path. Drop-in
+ * replacement for `writeContract`.
  *
- * @param method      the *self-paid* method name (e.g. "register_user"); the
+ * Flow:
+ *   1. Build the inner tx (user = source) and simulate.
+ *   2. `prepare`: relayer signs the sponsor's Soroban auth entry server-side.
+ *   3. User signs the prepared inner tx with their wallet (`signTransaction`).
+ *   4. `submit`: relayer wraps it in a fee-bump (sponsor pays) and submits.
+ *
+ * @param method      the *self-paid* method name (e.g. "send_message"); the
  *                    "_sponsored" variant is used automatically when sponsored
  * @param callerArgs  args for the self-paid method (caller address first)
+ * @param _signAuthEntry kept for call-site compatibility; unused in this flow
  */
 export async function writeMaybeSponsored(
   contractId: string,
@@ -195,26 +182,32 @@ export async function writeMaybeSponsored(
   callerArgs: xdr.ScVal[],
   userAddress: string,
   signTransaction: (xdr: string) => Promise<string>,
-  signAuthEntry: AuthEntrySigner,
+  _signAuthEntry?: AuthEntrySigner,
 ): Promise<{ hash: string; sponsored: boolean }> {
   const sponsor = await getSponsorAddress();
 
   if (sponsor) {
     try {
-      const txXdr = await buildSponsoredXdr(
+      const innerXdr = await buildInnerTxXdr(
         sponsor,
         contractId,
         `${method}_sponsored`,
         userAddress,
         callerArgs,
-        signAuthEntry,
       );
-      const result = await submitToRelayer(txXdr);
+
+      // Phase 1 — relayer signs the sponsor's auth entry (sponsor key stays server-side).
+      const prepared = await relayPost<{ xdr: string }>({ phase: 'prepare', xdr: innerXdr });
+
+      // Phase 2 — user signs the prepared inner transaction with their wallet.
+      const signedInnerXdr = await signTransaction(prepared.xdr);
+
+      // Phase 3 — relayer fee-bumps (sponsor pays) and submits.
+      const result = await relayPost<RelayResult>({ phase: 'submit', xdr: signedInnerXdr });
       return { hash: result.hash, sponsored: true };
     } catch (err) {
-      // If the sponsored path fails for any reason, fall back to self-paid so a
-      // funded user is never blocked. (An unfunded user will still see the
-      // underlying error from the self-paid attempt below.)
+      // Fall back to self-paid so a funded user is never blocked. Logged loudly
+      // so a misconfigured/failing relayer is diagnosable rather than silent.
       console.warn('[gasless] sponsored path failed, falling back to self-paid:', err);
     }
   }
