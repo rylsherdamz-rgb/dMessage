@@ -19,6 +19,7 @@ export const arg = {
   string: (s: string): xdr.ScVal => nativeToScVal(s, { type: 'string' }),
   u32: (n: number): xdr.ScVal => nativeToScVal(n, { type: 'u32' }),
   bytes: (b: Uint8Array): xdr.ScVal => xdr.ScVal.scvBytes(Buffer.from(b)),
+  bool: (b: boolean): xdr.ScVal => nativeToScVal(b),
   none: (): xdr.ScVal => xdr.ScVal.scvVoid(),
 };
 

@@ -20,6 +20,7 @@ import { CONTRACT_IDS } from '@/lib/stellar';
 import { arg } from '@/lib/soroban';
 import { writeMaybeSponsored } from '@/lib/gasless';
 import { uploadToIpfs, uploadPayload } from '@/lib/ipfs';
+import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +31,7 @@ export default function ConversationPage() {
   const { hide } = useArchive();
   const { data: messages, isLoading } = useMessages(peerAddress);
   const { data: peerProfile } = useProfile(peerAddress);
+  const { isTyping, sendTyping } = useTypingIndicator(peerAddress);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -263,10 +265,20 @@ export default function ConversationPage() {
                 )}
               </button>
             </div>
-            <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">
-              <ShieldCheck className="h-3 w-3" strokeWidth={2} aria-hidden />
-              End-to-end encrypted
-            </p>
+            {isTyping ? (
+              <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--amber)]">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--amber)] opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--amber)]" />
+                </span>
+                typing…
+              </p>
+            ) : (
+              <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">
+                <ShieldCheck className="h-3 w-3" strokeWidth={2} aria-hidden />
+                End-to-end encrypted
+              </p>
+            )}
           </div>
           <button
             onClick={() => { setShowSearch((s) => !s); setSearchQuery(''); }}
@@ -421,6 +433,7 @@ export default function ConversationPage() {
                 onChange={(e) => {
                   setInput(e.target.value);
                   autoResize();
+                  sendTyping();
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
