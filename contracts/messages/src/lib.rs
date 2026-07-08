@@ -47,7 +47,7 @@ impl MessageContract {
             .get(&user)
             .unwrap_or_else(|| Vec::new(&env));
 
-        let total = inbox.len() as u32;
+        let total = inbox.len();
         let start = page * page_size;
         let end = if start + page_size > total {
             total
@@ -74,7 +74,7 @@ impl MessageContract {
             .persistent()
             .get::<Address, Vec<InboxMessage>>(&user)
             .unwrap_or_else(|| Vec::new(&env));
-        inbox.len() as u32
+        inbox.len()
     }
 
     pub fn mark_as_read(env: Env, caller: Address, index: u32) {
