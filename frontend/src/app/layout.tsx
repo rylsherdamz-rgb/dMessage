@@ -6,6 +6,7 @@ import { Providers } from "@/lib/providers";
 import { ThemeProvider } from "@/lib/theme";
 import { ClientWalletProvider } from "@/components/wallet/ClientWalletProvider";
 import { UsernamePrompt } from "@/components/wallet/UsernamePrompt";
+import { UnreadTitle } from "@/components/UnreadTitle";
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
@@ -55,6 +56,7 @@ export default function RootLayout({
         <ThemeProvider>
           <Providers>
             <ClientWalletProvider>
+              <UnreadTitle />
               {children}
               <UsernamePrompt />
             </ClientWalletProvider>

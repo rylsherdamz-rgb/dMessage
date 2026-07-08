@@ -9,6 +9,7 @@ import { useWallet } from '@/components/wallet/WalletProvider';
 import { useConversations } from '@/hooks/useConversations';
 import { useProfile } from '@/hooks/useProfile';
 import { useArchive } from '@/hooks/useArchive';
+import { useUnreadCount } from '@/hooks/useUnread';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { arg } from '@/lib/soroban';
 import { writeMaybeSponsored } from '@/lib/gasless';
@@ -216,14 +217,22 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
 
 function PeerName({ address, lastUpdated }: { address: string; lastUpdated: number }) {
   const { data: profile } = useProfile(address);
+  const { data: unread } = useUnreadCount(address);
   return (
-    <div className="min-w-0 flex-1">
-      <p className="truncate font-mono text-sm font-bold tracking-tight text-[var(--text)]">
-        {profile?.username ? `@${profile.username}` : `${address.slice(0, 6)}…${address.slice(-4)}`}
-      </p>
-      <p className="truncate font-mono text-[10px] text-[var(--text-muted)]">
-        {relativeTime(lastUpdated)}
-      </p>
+    <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+      <div className="min-w-0">
+        <p className="truncate font-mono text-sm font-bold tracking-tight text-[var(--text)]">
+          {profile?.username ? `@${profile.username}` : `${address.slice(0, 6)}…${address.slice(-4)}`}
+        </p>
+        <p className="truncate font-mono text-[10px] text-[var(--text-muted)]">
+          {relativeTime(lastUpdated)}
+        </p>
+      </div>
+      {unread != null && unread > 0 && (
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 font-mono text-[10px] font-bold text-black">
+          {unread > 99 ? '99+' : unread}
+        </span>
+      )}
     </div>
   );
 }
