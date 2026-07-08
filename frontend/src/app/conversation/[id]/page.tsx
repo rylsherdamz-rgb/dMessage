@@ -37,6 +37,11 @@ export default function ConversationPage() {
   const [sendError, setSendError] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const previewUrl = useMemo(() => {
+    if (!attachedFile || !attachedFile.type.startsWith('image/')) return null;
+    return URL.createObjectURL(attachedFile);
+  }, [attachedFile]);
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
   const [uploading, setUploading] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -405,7 +410,14 @@ export default function ConversationPage() {
 
         <div className="border-t-2 border-[var(--border-strong)] bg-[var(--bg-surface)] p-2 sm:p-4">
           {attachedFile && (
-            <div className="mb-2 flex items-center gap-2 border-2 border-[var(--border)] bg-[var(--bg-inset)] px-3 py-2">
+            <div className="mb-2 flex items-center gap-3 border-2 border-[var(--border)] bg-[var(--bg-inset)] p-2">
+              {previewUrl && (
+                <img
+                  src={previewUrl}
+                  alt=""
+                  className="h-16 w-16 shrink-0 border border-[var(--border)] bg-black object-cover"
+                />
+              )}
               <span className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--text)]">
                 {attachedFile.name} ({(attachedFile.size / 1024).toFixed(1)} KB)
               </span>
