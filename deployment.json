@@ -19,11 +19,11 @@
       "deploy_tx": "8500bf9f0a0108363aeb5170bc96815e7565bf45278eabcef38d49da7b61463b"
     },
     "messages": {
-      "id": "CDB4HOM2OTITN4BHSJMXDSTAJGUMIQQCPFNDFFIE5PGW3WOOCMIUI7CT",
-      "wasm_sha256": "4fd97d46071b844a9fbfc5345c011ee83b20a68a3f4dfd121a4ef495aa0e7df6",
+      "id": "CB6A3AMUSDIH7KKZRQ4Y2MT6PSBFQPJND5T5USLQJGTQAPTQ4IIX3QEE",
+      "wasm_sha256": "9bdbc9f47cdc08ce50621a77f314f2ea9cd1925856c452c65f473fa67ae59a07",
       "src": "contracts/gasless/messages_gasless/src/lib.rs",
-      "deploy_tx": "9b7e16613e2e5311452a2c718fd4f498ccb88a36402315e93460a2741639a94b",
-      "note": "v5 — gasless messages with send_message_sponsored for fee-free sending"
+      "deploy_tx": "e637293cecf7d1844b5eeac4f3bd81066817dacbd4846f4bc0837840b22098e5",
+      "note": "v6 — added mark_all_read / mark_all_read_sponsored for single-popup mark-as-read"
     },
   "deprecated": {
     "note": "Superseded contracts kept for reference and on-chain history; no longer used by the frontend.",

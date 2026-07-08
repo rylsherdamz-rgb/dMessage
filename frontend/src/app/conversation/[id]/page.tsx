@@ -121,54 +121,42 @@ export default function ConversationPage() {
     setTimeout(() => queryClient.invalidateQueries({ queryKey: key }), 6000);
   }, [address, peerAddress, signTransaction, signAuthEntry, queryClient]);
 
-  // Tracks inbox indices we've already issued a read-receipt for, so re-renders
-  // and polling don't re-prompt for the same message.
-  const markedRef = useRef<Set<number>>(new Set());
-
-  /**
-   * Marks a single received message read on-chain. Routed through the gasless /
-   * fee-sponsored path so the sponsor pays the fee; the user only signs their own
-   * Soroban auth entry. `index` is the message's position in the *current user's*
-   * inbox (see `MessageData.inboxIndex`).
-   */
-  const markRead = useCallback(async (index: number) => {
+  // Marks ALL unread messages as read with a single contract call (one popup
+  // instead of N). Uses `markedRef` so re-renders don't re-trigger.
+  const markedRef = useRef(false);
+  const markAllRead = useCallback(async () => {
     if (!address || !CONTRACT_IDS.messages) return;
     await writeMaybeSponsored(
       CONTRACT_IDS.messages,
-      'mark_as_read',
-      [arg.address(address), arg.u32(index)],
+      'mark_all_read',
+      [arg.address(address)],
       address,
       signTransaction,
       signAuthEntry,
     );
   }, [address, signTransaction, signAuthEntry]);
 
-  // When the thread is open, send read receipts for any unread messages we've
-  // received from this peer. This drives the ✓✓ (read) indicator the sender sees.
+  // When the thread is open, mark all messages as read in one shot. This drives
+  // the ✓✓ (read) indicator the sender sees.
   useEffect(() => {
     if (!address || !peerAddress || !messages?.length) return;
 
-    const unread = messages.filter(
+    const hasUnread = messages.some(
       (m) =>
         m.sender === peerAddress &&
-        !m.read &&
-        typeof m.inboxIndex === 'number' &&
-        !markedRef.current.has(m.inboxIndex),
+        !m.read,
     );
-    if (unread.length === 0) return;
+    if (!hasUnread || markedRef.current) return;
 
+    markedRef.current = true;
     let cancelled = false;
     (async () => {
-      for (const m of unread) {
-        const idx = m.inboxIndex as number;
-        markedRef.current.add(idx); // optimistic: avoid duplicate prompts
-        try {
-          await markRead(idx);
-        } catch (err) {
-          markedRef.current.delete(idx); // allow a retry on next poll
-          console.warn('[ConversationPage] mark-as-read failed:', err);
-          break; // stop the batch if the user rejects or the relayer errors
-        }
+      try {
+        await markAllRead();
+      } catch (err) {
+        markedRef.current = false;
+        console.warn('[ConversationPage] mark-all-read failed:', err);
+        return;
       }
       if (!cancelled) {
         queryClient.invalidateQueries({ queryKey: messagesQueryKey(address, peerAddress) });
@@ -178,7 +166,7 @@ export default function ConversationPage() {
     return () => {
       cancelled = true;
     };
-  }, [messages, address, peerAddress, markRead, queryClient]);
+  }, [messages, address, peerAddress, markAllRead, queryClient]);
 
   const attachFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
