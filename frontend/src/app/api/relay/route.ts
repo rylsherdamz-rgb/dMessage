@@ -7,7 +7,7 @@ import {
   Address,
   xdr,
   scValToNative,
-} from 'stellar-sdk';
+} from '@stellar/stellar-sdk';
 import { CONTRACT_IDS } from '@/lib/contract-ids';
 import { precheck, recordSpend, usageSnapshot } from '@/lib/relay-guard';
 

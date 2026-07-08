@@ -10,7 +10,7 @@ import {
   nativeToScVal,
   scValToNative,
   xdr,
-} from 'stellar-sdk';
+} from '@stellar/stellar-sdk';
 import { getSorobanServer, NETWORK_PASSPHRASE } from './stellar';
 
 /** ScVal argument builders for contract calls. */

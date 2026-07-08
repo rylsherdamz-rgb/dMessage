@@ -10,7 +10,7 @@ import {
   Address,
   authorizeEntry,
   xdr,
-} from 'stellar-sdk';
+} from '@stellar/stellar-sdk';
 import { getSorobanServer, NETWORK_PASSPHRASE } from './stellar';
 import { writeContract } from './soroban';
 

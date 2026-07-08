@@ -1,4 +1,4 @@
-import { rpc, Networks } from 'stellar-sdk';
+import { rpc, Networks } from '@stellar/stellar-sdk';
 
 const RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC ?? 'https://soroban-testnet.stellar.org';
 
