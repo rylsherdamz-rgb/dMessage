@@ -4,7 +4,7 @@
 
 **Live deployment:** [dmessage.vercel.app](https://dmessage.vercel.app)
 **Launch announcement:** [X/Twitter](https://x.com/ChichiCode0/status/2071606624863858785)
-**Promo video:** [`dmessage-promo.mp4`](frontend/public/dmessage-promo.mp4) ([raw](https://raw.githubusercontent.com/rylsherdamz-rgb/dMessage/level5/frontend/public/dmessage-promo.mp4))
+**Promo video:** [`dmessage-promo.mp4`](frontend/public/dmessage-promo.mp4) ([raw](https://raw.githubusercontent.com/rylsherdamz-rgb/dMessage/level6/frontend/public/dmessage-promo.mp4))
 
 ## Project Description
 
@@ -33,6 +33,7 @@ A world where:
 - **Media Support**: Text and image sharing with IPFS pinning
 - **Wallet Integration**: Native Stellar transaction signing for contract interactions
 - **Low Gas Costs**: Optimized Soroban storage patterns using persistent storage
+- **Gasless / Fee Sponsorship**: A sponsor/relayer can pay a user's fee via Stellar fee-bump, so new users transact without holding XLM (on-chain sponsorship accounting via `*_sponsored` functions)
 - **Open Source**: Fully auditable smart contracts and frontend code
 - **Dark Theme**: Modern UI with Tailwind CSS v4, custom OKLCH color system
 - **3D Landing Page**: Interactive hero scene with Three.js and Framer Motion
@@ -88,95 +89,165 @@ A world where:
 
 ## Smart Contract API
 
+Every state-changing function has a `*_sponsored` variant for gasless / fee-sponsored
+use (see [Advanced Features](#advanced-features)).
+
 ### UserRegistry
-- `register_user(username, encryption_pubkey, metadata_ipfs)` — Register or update your profile
+- `register_user(caller, username, encryption_pubkey, metadata_ipfs)` — Register or update your profile
+- `register_user_sponsored(sponsor, caller, …)` — Gasless register; `sponsor` pays the fee (fee-bump) and is recorded on-chain
 - `get_user(addr)` — Get a user's profile by their Stellar address
+- `get_sponsored_count(sponsor)` — How many actions a sponsor has paid for
 
 ### SocialGraph
-- `ensure_conversation(user_a, user_b)` — Create or get a deterministic conversation between two users
+- `ensure_conversation(caller, user_a, user_b)` — Create or get a deterministic conversation between two users
+- `ensure_conversation_sponsored(sponsor, caller, user_a, user_b)` — Gasless variant; `sponsor` pays via fee-bump
 - `get_user_conversations(user_addr)` — Get all conversation references for a user
+- `get_sponsored_count(sponsor)` — How many actions a sponsor has paid for
 
-Users registered and interacting via the deployed Soroban contracts on testnet:
+### MessageContract
+- `send_message(sender, recipient, content)` — Store a message in the recipient's inbox
+- `send_message_sponsored(sponsor, sender, recipient, content)` — Gasless send; `sponsor` pays via fee-bump
+- `get_messages(user, page, page_size)` — Paginated inbox retrieval
+- `mark_as_read(caller, index)` — Mark a message as read
+- `mark_as_read_sponsored(sponsor, caller, index)` — Gasless mark-as-read; `sponsor` pays via fee-bump
+- `my_message_count(user)` — Get the total message count for a user
+- `get_sponsored_count(sponsor)` — How many actions a sponsor has paid for
 
-![User registry usage](images/proof_of_users/user_registry.png)
-![Social graph usage](images/proof_of_users/social_graph.png)
-![Message contract usage](images/proof_of_users/message_contract.png)
+## Advanced Features
 
-### Vercel Analytics
+### Fee Sponsorship — Gasless Transactions via Fee-Bump
 
-![Vercel analytics](images/vercel_analystics.png)
+The current contracts (see [`contracts/gasless/`](contracts/gasless)) let a
+**sponsor/relayer pay a user's transaction fee**, so a brand-new user with **no
+XLM** can register, send messages, and mark them read — a fully gasless
+experience.
 
-- **User Feedback Folder:** `user_feedback/` ([Excel export](user_feedback/dMessage%20FeedBack%20%28Responses%29.xlsx))
+**How fee-bump works on Stellar.** A fee-bump is a transaction-envelope feature,
+not contract logic. One transaction is wrapped inside another:
 
-**Demo video:** [`dmessage-promo.mp4`](frontend/public/dmessage-promo.mp4) — [Watch on Google Drive (backup)](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
+```
+┌─────────────────────────────────────────────┐
+│  FeeBumpTransaction (OUTER)                   │
+│  • feeSource  = SPONSOR account               │  ← pays the XLM fee
+│  • signatures = [ sponsor's signature ]        │
+│   ┌─────────────────────────────────────────┐ │
+│   │  Transaction (INNER)                      │ │
+│   │  • source     = USER account              │ │  ← the real action
+│   │  • operation  = InvokeHostFunction(...)   │ │     (calls the contract)
+│   │  • Soroban auth signed by USER            │ │
+│   └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────┘
+```
 
-## User Feedback Iteration Summary
+1. The user signs the Soroban auth entries of the inner transaction (this is what
+   satisfies `caller.require_auth()` / `sender.require_auth()` in the contract).
+2. A sponsor account wraps it in a `FeeBumpTransaction` (fee source = sponsor),
+   signs the outer envelope, and submits it.
+3. The network charges the **sponsor**; the user spends nothing.
 
-We collected structured feedback from real testers (see `user_feedback/`) and shipped a round of changes based on the most-requested items. The table below maps recurring feedback to what was actually changed in the codebase.
+**Security.** The user's signature covers the inner transaction, and the sponsor
+**cannot alter it** — any change invalidates the user's signature and the Soroban
+auth entries. The sponsor controls *whether* the action is paid for, never *what*
+the action does.
 
-| # | What users asked for | What we changed | Status |
-|---|----------------------|-----------------|--------|
-| 1 | Dark mode toggle for late-night use | Added a Light/Dark theme toggle in **Settings → Appearance**; replaced hardcoded `text-white` styles with the themeable `--text` CSS variable across the dashboard, settings, and conversation sidebar so text stays readable in both modes | ✅ Shipped |
-| 2 | QR codes for sharing wallet addresses | Added a new `QrCode` component (`frontend/src/components/ui/QrCode.tsx`, backed by the `qrcode` package) and surfaced it in **Settings → Account → Share your address** | ✅ Shipped |
-| 3 | Search / filter for conversations | Added a conversation filter in the sidebar with a `⌘K` keyboard shortcut | ✅ Shipped |
-| 4 | Read receipts / delivery indicators | Added ✓ (delivered) and ✓✓ (read) status indicators backed by the on-chain `mark_as_read` receipt | ✅ Shipped |
-| 5 | Emoji picker in chat | Added an emoji picker to the message composer | ✅ Shipped |
-| 6 | File sharing beyond text | Added image/file attachments uploaded to IPFS with only the CID sent on-chain (Messenger-style attachment chip UX) | ✅ Shipped |
-| 7 | Keyboard shortcuts for power users | Added shortcuts (e.g. `⌘K` to filter conversations) | ✅ Shipped |
-| 8 | Better mobile experience | Improved mobile responsiveness across the dashboard and sidebar layouts | ✅ Shipped |
-| 9 | Notification sound variety, group chats, disappearing messages | Tracked on the roadmap (see [Future Scope](#future-scope)) | 🔜 Planned |
-| 10 | Clearer onboarding / empty states | Improved the dashboard welcome/empty state and added an in-README User Guide; richer interactive onboarding tracked for a future iteration | ◑ Partial |
+**On-chain accountability (what the contracts add).** Fee-bump alone leaves no
+contract-level record of who sponsored whom. Each state-changing function gains a
+`*_sponsored` variant that:
 
-### Documentation updates in this iteration
+- requires `sponsor.require_auth()` (the sponsor cryptographically consents, so the
+  tally cannot be forged) **and** the user's own `require_auth()`;
+- increments a per-sponsor counter readable via `get_sponsored_count(sponsor)`;
+- emits a `Sponsored` event with `(sponsor, user)` topics.
 
-- Added a full **Technical Documentation** section (cryptographic protocol, smart-contract architecture, frontend architecture, project structure)
-- Added a **User Guide** (getting started, features, troubleshooting)
-- Added **Community & Contributions** guidelines
-- Added the launch announcement and embedded promo video links
-- Pointed the promo video raw link at the `level5` branch
+This enables relayer analytics, rate-limiting, and abuse prevention (e.g. "this
+sponsor has funded N actions this month — stop relaying"). The original,
+self-paid functions are kept intact and still work — including transparently
+under a fee-bump.
 
-### Presentation
+### Migration Note — New Contracts & Deprecations
 
-View the dMessage pitch deck:
+This release **redeployed all three contracts** as gasless / fee-sponsored
+versions (addresses in the [Current — Gasless](#current--gasless--fee-sponsored-in-use)
+table) and repointed the frontend, `.env.example`, and `deployment.json` to them.
 
-- **Interactive:** [Gamma Presentation](https://gamma.app/docs/dMessage-dq4tl7fbm2p9cxk?mode=doc)
-- **PDF:** [`ppt/dMessage.pdf`](ppt/dMessage.pdf)
+The previous non-gasless contracts are **deprecated** — kept on-chain and in the
+repo (`contracts/user_registry`, `contracts/social_graph`, `contracts/messages`)
+for history and verification, but no longer used by the app. See the
+[Deprecated Contracts](#deprecated-contracts-kept-for-reference-no-longer-used)
+table for their addresses and WASM hashes.
+
+## Contract Deployment
+
+#### Current — Gasless / Fee-Sponsored (in use)
+
+These contracts add **Fee Sponsorship**: a sponsor/relayer account can pay a user's
+transaction fee via a Stellar fee-bump transaction, so users transact without holding
+XLM. Each state-changing function has a `*_sponsored` variant that records on-chain
+sponsorship (`get_sponsored_count`, `Sponsored` event). Source lives in
+[`contracts/gasless/`](contracts/gasless).
+
+> **Security-hardened build.** These are the audited versions (see
+> [`contracts/gasless/SECURITY_AUDIT.md`](contracts/gasless/SECURITY_AUDIT.md)):
+> indexed inbox storage (no unbounded-growth DoS), participant-only conversation
+> creation, persistent-entry TTL bumping, 32-byte pubkey validation, global
+> username uniqueness, and message/field size caps. The earlier (pre-audit)
+> gasless build is listed under [Deprecated](#deprecated-contracts-kept-for-reference-no-longer-used).
 
 | Contract | Address | WASM Hash (SHA256) |
 |----------|---------|-------------------|
-| UserRegistry | `CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` |
-| SocialGraph | `CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7` | `2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c` |
-| MessageContract (v2 — current) | `CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7` | `98221de14f435ac68060c3e7494da96819563467ed46ce78ce8d1e618e1bb51d` |
-| MessageContract (v1 — deprecated) | `CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK` | `8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e` |
+| UserRegistry (gasless) | `CDHJHY3LQWJM3PPKGFA6QRDUK2JQU5DQEBFKL42I3UEZNNM6IRFF76DJ` | `053d3a283dc2fdd605f53420e1f169adc0036b8edbcab16ef38139637ccc5627` |
+| SocialGraph (gasless) | `CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK` | `435836ec67d6ae80557ff606ee80f6178fbd30a3cc6fc79956b46c486d56ad6a` |
+| MessageContract (gasless) | `CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO` | `9133e011abaa8537d6f271378b3920f884976c94adcf4445f1b6f051cb5af26a` |
 
-Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7) · [Messages v2](https://stellar.expert/explorer/testnet/contract/CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7) · [Messages v1 (deprecated)](https://stellar.expert/explorer/testnet/contract/CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK)
+Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CDHJHY3LQWJM3PPKGFA6QRDUK2JQU5DQEBFKL42I3UEZNNM6IRFF76DJ) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK) · [Messages](https://stellar.expert/explorer/testnet/contract/CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO)
 
-All contracts were deployed by account [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM) (v1) and [`GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH`](https://stellar.expert/explorer/testnet/account/GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH) (v2) — view all deployment transactions there.
+The gasless contracts were deployed by account [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM).
+
+#### Deprecated Contracts (kept for reference, no longer used)
+
+The previous non-gasless contracts remain on-chain and in the repo for history and
+verification, but the frontend no longer points to them.
+
+| Contract | Address | WASM Hash (SHA256) | Status |
+|----------|---------|-------------------|--------|
+| UserRegistry (audited, strict 32-byte pubkey) | `CCJO373LK257MCNEEQ24NWLL34RN34HBASNN3ASP7SBZKCA4YSUAKOF2` | `dbd3df271dd71f33ef8984266fca44251e5db103b018c63b453f4c6b55d88988` | deprecated |
+| UserRegistry (gasless v1, pre-audit) | `CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG` | `1565c6a47be7c5a04496764d56348e98e0f9f243046e42442a788cd13460cf4c` | deprecated |
+| SocialGraph (gasless v1, pre-audit) | `CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q` | `2eebe3418e6e78b2c471d88e6136d77cf2a4f957c7221b4e15b2575b0a6a5724` | deprecated |
+| MessageContract (gasless v1, pre-audit) | `CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3` | `64194f4ea00d6970a4819d1977c700163f2d9df75f242ad139e7e49e15baa995` | deprecated |
+| UserRegistry (non-gasless) | `CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` | deprecated |
+| SocialGraph (non-gasless) | `CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7` | `2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c` | deprecated |
+| MessageContract (v2) | `CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7` | `98221de14f435ac68060c3e7494da96819563467ed46ce78ce8d1e618e1bb51d` | deprecated |
+| MessageContract (v1) | `CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK` | `8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e` | deprecated |
+
+Explorer (deprecated): [UserRegistry gasless v1](https://stellar.expert/explorer/testnet/contract/CD3SG54U3XKT4SOK2T25HZRF244Q5KWSXCKTNCIQH44ZPBB2OZ4F6YZG) · [SocialGraph gasless v1](https://stellar.expert/explorer/testnet/contract/CCEOAERFEEVPFRVKMIXYBWQGS5H5N7ZYNY2JJ37TG4AI4V2W5XGFGB2Q) · [Messages gasless v1](https://stellar.expert/explorer/testnet/contract/CDK2AI4JMCD6I53TCYKL5WISQADKE6VHQKHRWK7NTFJ2TQOSM2RIIYY3) · [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7) · [Messages v2](https://stellar.expert/explorer/testnet/contract/CATLF3WXUG3GMD2J4XIOIYVE3ND7PBFYYXHPS4632ZXEPJPNGYNAEZK7) · [Messages v1](https://stellar.expert/explorer/testnet/contract/CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK)
+
+The deprecated contracts were deployed by [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM) (v1) and [`GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH`](https://stellar.expert/explorer/testnet/account/GDHP5PPKFRCC23E6MSNDKC7UCHYNTV74DJI7UYR7EDR4YMSGCL3KTZQH) (v2).
 
 ### Source Verification
 
-Anyone can verify these contracts by rebuilding from source:
+Anyone can verify the **current (gasless)** contracts by rebuilding from source:
 
 ```bash
-# 1. Clone the repo at the deployment commit
-git checkout 3ec3073
+# 1. Clone the repo at the deployment commit (audited gasless build, branch level6)
+git checkout 4b40a6d
 
-# 2. Build
-stellar contract build --contract-dir contracts/user_registry
-stellar contract build --contract-dir contracts/social_graph
-stellar contract build --contract-dir contracts/messages
+# 2. Build each gasless contract (wasm32v1-none)
+cd contracts/gasless/user_registry_gasless && stellar contract build && cd -
+cd contracts/gasless/social_graph_gasless && stellar contract build && cd -
+cd contracts/gasless/messages_gasless && stellar contract build && cd -
 
 # 3. Compare SHA256 hashes
-sha256sum contracts/target/wasm32v1-none/release/*.wasm
-# The output should match the WASM hashes in the table above
+sha256sum contracts/gasless/target/wasm32v1-none/release/*.wasm
+# The output should match the gasless WASM hashes in the table above
 ```
 
-The deployment manifest with full metadata is at [`deployment.json`](deployment.json).
+The deprecated (non-gasless) contracts can still be verified by building
+`contracts/user_registry`, `contracts/social_graph`, and `contracts/messages`.
 
-*Mainnet addresses to be announced post-audit.*
-### MessageContract
-- `send_message(conversation_id, content_hash, content_type)` — Store a message hash in a conversation
-- `get_messages(conversation_id, page, page_size)` — Paginated message retrieval
+The deployment manifest with full metadata (current + deprecated) is at
+[`deployment.json`](deployment.json).
+
+*All contracts are deployed on Stellar Testnet only. There is no mainnet deployment.*
 
 ## Getting Started
 
@@ -195,10 +266,10 @@ cd dMessage
 # Install frontend dependencies
 cd frontend && npm install && cd ..
 
-# Build smart contracts
-cd contracts/user_registry && cargo build --release && cd ../..
-cd contracts/social_graph && cargo build --release && cd ../..
-cd contracts/messages && cargo build --release && cd ../..
+# Build smart contracts (current / gasless)
+cd contracts/gasless/user_registry_gasless && stellar contract build && cd -
+cd contracts/gasless/social_graph_gasless && stellar contract build && cd -
+cd contracts/gasless/messages_gasless && stellar contract build && cd -
 ```
 
 ### Environment
@@ -237,24 +308,19 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ![UI screenshot 5](images/ui-5.png)
 ![UI screenshot 6](images/ui-6.png)
 
-### Proof of Users — On-Chain Activity
+## Proof of Users — On-Chain Activity
 
-### MessageContract
-- `send_message(sender, recipient, content)` — Store a message in the recipient's inbox
-- `get_messages(user, page, page_size)` — Paginated inbox retrieval
-- `mark_as_read(caller, index)` — Mark a message as read
-- `my_message_count(user)` — Get the total message count for a user
 Users registered and interacting via the deployed Soroban contracts on testnet:
 
 ![User registry usage](images/proof_of_users/user_registry.png)
 ![Social graph usage](images/proof_of_users/social_graph.png)
 ![Message contract usage](images/proof_of_users/message_contract.png)
 
-### Vercel Analytics
+## Vercel Analytics
 
 ![Vercel analytics](images/vercel_analystics.png)
 
-### User Feedback
+## User Feedback
 
 dMessage was user-tested with 20 participants who provided feedback via Google Form. The raw responses and a summary of requested changes are linked below.
 
@@ -280,86 +346,39 @@ Full details available in the [response spreadsheet](https://docs.google.com/spr
 
 - **User Feedback Folder:** `user_feedback/` ([Excel export](user_feedback/dMessage%20FeedBack%20%28Responses%29.xlsx))
 
-**Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
+**Demo video:** [`dmessage-promo.mp4`](frontend/public/dmessage-promo.mp4) — [Watch on Google Drive (backup)](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
 
-## Contract Deployment
+### User Feedback Iteration Summary
 
-| Contract | Address | WASM Hash (SHA256) |
-|----------|---------|-------------------|
-| UserRegistry | `CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA` | `000a21be277fa53e1e91b5cbea85b20d8638dfac07396c157b2894b6f3742964` |
-| SocialGraph | `CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7` | `2f1eaee677be5dbd9124a715efb47c432c496681f0145f9e27d3c3153a48401c` |
-| MessageContract | `CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK` | `8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e` |
+We collected structured feedback from real testers (see `user_feedback/`) and shipped a round of changes based on the most-requested items. The table below maps recurring feedback to what was actually changed in the codebase.
 
-Explorer: [UserRegistry](https://stellar.expert/explorer/testnet/contract/CAFHDYYSSR7A5MRMTNY457HDDBBWYJZAQNZ22NT7TOMMBRSNC2OOBYHA) · [SocialGraph](https://stellar.expert/explorer/testnet/contract/CCI7DBNILBDTLR2KF24I7647H5JGUSMEJDHXS6D7H6GPSQ3WEBJMUPM7) · [Messages](https://stellar.expert/explorer/testnet/contract/CAXNXU2GV45Y7TXDLDJNOVQQ74P4LSX2D5PWRAN52GH3GPVLR423E3TK)
+| # | What users asked for | What we changed | Status |
+|---|----------------------|-----------------|--------|
+| 1 | Dark mode toggle for late-night use | Added a Light/Dark theme toggle in **Settings → Appearance**; replaced hardcoded `text-white` styles with the themeable `--text` CSS variable across the dashboard, settings, and conversation sidebar so text stays readable in both modes | ✅ Shipped |
+| 2 | QR codes for sharing wallet addresses | Added a new `QrCode` component (`frontend/src/components/ui/QrCode.tsx`, backed by the `qrcode` package) and surfaced it in **Settings → Account → Share your address** | ✅ Shipped |
+| 3 | Search / filter for conversations | Added a conversation filter in the sidebar with a `⌘K` keyboard shortcut | ✅ Shipped |
+| 4 | Read receipts / delivery indicators | Added ✓ (delivered) and ✓✓ (read) status indicators backed by the on-chain `mark_as_read` receipt | ✅ Shipped |
+| 5 | Emoji picker in chat | Added an emoji picker to the message composer | ✅ Shipped |
+| 6 | File sharing beyond text | Added image/file attachments uploaded to IPFS with only the CID sent on-chain (Messenger-style attachment chip UX) | ✅ Shipped |
+| 7 | Keyboard shortcuts for power users | Added shortcuts (e.g. `⌘K` to filter conversations) | ✅ Shipped |
+| 8 | Better mobile experience | Improved mobile responsiveness across the dashboard and sidebar layouts | ✅ Shipped |
+| 9 | Notification sound variety, group chats, disappearing messages | Tracked on the roadmap (see [Future Scope](#future-scope)) | 🔜 Planned |
+| 10 | Clearer onboarding / empty states | Improved the dashboard welcome/empty state and added an in-README User Guide; richer interactive onboarding tracked for a future iteration | ◑ Partial |
 
-All contracts were deployed by account [`GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM`](https://stellar.expert/explorer/testnet/account/GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM) — view all deployment transactions there.
+### Documentation updates in this iteration
 
-### Source Verification
+- Added a full **Technical Documentation** section (cryptographic protocol, smart-contract architecture, frontend architecture, project structure)
+- Added a **User Guide** (getting started, features, troubleshooting)
+- Added **Community & Contributions** guidelines
+- Added the launch announcement and embedded promo video links
+- Pointed the promo video raw link at the `level5` branch
 
-Anyone can verify these contracts by rebuilding from source:
+## Presentation
 
-```bash
-# 1. Clone the repo at the deployment commit
-git checkout 3ec3073
+View the dMessage pitch deck:
 
-# 2. Build
-stellar contract build --contract-dir contracts/user_registry
-stellar contract build --contract-dir contracts/social_graph
-stellar contract build --contract-dir contracts/messages
-
-# 3. Compare SHA256 hashes
-sha256sum contracts/target/wasm32v1-none/release/*.wasm
-# The output should match the WASM hashes in the table above
-```
-
-The deployment manifest with full metadata is at [`deployment.json`](deployment.json).
-
-*Mainnet addresses to be announced post-audit.*
-
-## Security
-
-- All smart contracts undergo third-party audit before mainnet deployment
-- Client-side E2EE using standards-compliant Web Crypto API (ECDH + AES-GCM)
-- Bug bounty program via Immunefi (post-launch)
-- Regular dependency updates with Dependabot
-- Formal verification of critical contract functions (in progress)
-
-## Future Scope
-
-- **Group Chats**: Multi-party conversations with shared symmetric keys
-- **Verified Identities**: Keybase-style identity proofs via Stellar assets
-- **Message Reactions**: Emoji reactions stored as contract events
-- **Read Receipts**: Optional delivery and read tracking flags
-- **Communities**: Topic-based public channels with membership management
-- **Moderation Tools**: User-controlled muting, blocking, and reporting
-- **Cross-chain Bridges**: Connect to Ethereum/Solana via Stellar Asset Contracts
-- **DAO Governance**: Token-weighted voting for protocol upgrades and parameters
-- **Accessibility**: WCAG 2.1 AA compliance with full screen reader support
-- **Performance**: IPFS Cluster pinning and CDN gateways for media delivery
-- **Mobile**: React Native app with shared crypto/IPFS primitives
-
-## Security
-
-- All smart contracts undergo third-party audit before mainnet deployment
-- Client-side E2EE using standards-compliant Web Crypto API (ECDH + AES-GCM)
-- Bug bounty program via Immunefi (post-launch)
-- Regular dependency updates with Dependabot
-- Formal verification of critical contract functions (in progress)
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Blockchain | Stellar Soroban (Rust smart contracts) |
-| Frontend | Next.js 16, React 19, TypeScript 5 |
-| Styling | Tailwind CSS v4, OKLCH color system |
-| 3D Graphics | Three.js, React Three Fiber, Drei |
-| Animation | Framer Motion 12 |
-| State/Data | TanStack React Query 5 |
-| Wallet | Stellar Wallet Kit 2 |
-| Crypto | Web Crypto API (ECDH P-256, AES-GCM-256) |
-| Storage | IPFS (pinning service + gateway) |
-| CI/CD | GitHub Actions (Soroban deploy + Vercel) |
+- **Interactive:** [Gamma Presentation](https://gamma.app/docs/dMessage-dq4tl7fbm2p9cxk?mode=doc)
+- **PDF:** [`ppt/dMessage.pdf`](ppt/dMessage.pdf)
 
 ## Technical Documentation
 
@@ -375,13 +394,19 @@ dMessage uses a hybrid E2EE scheme combining X25519 ECDH key exchange with AES-G
 
 ### Smart Contract Architecture
 
-The system uses three Soroban contracts:
+The system uses three Soroban contracts. The currently deployed versions are the
+gasless / fee-sponsored copies in [`contracts/gasless/`](contracts/gasless); the
+original non-gasless sources remain for reference:
 
 - **UserRegistry** (`contracts/user_registry/src/lib.rs`): Maps Stellar addresses to usernames, ECDH public keys, and IPFS metadata links. Implements `register_user` and `get_user` with persistent bumpable storage.
 
 - **SocialGraph** (`contracts/social_graph/src/lib.rs`): Tracks user conversation lists. `ensure_conversation` creates a sorted, deterministic conversation reference between two users. `get_user_conversations` returns paginated results.
 
 - **MessageContract** (`contracts/messages/src/lib.rs`): Per-recipient inbox model. Each message stores `(sender, content_cid, timestamp, read)` in a `Vec` mapped to the recipient's address. Supports paginated reads, read receipts, and message counting.
+
+The gasless variants ([`contracts/gasless/`](contracts/gasless)) keep these exact
+functions and add `*_sponsored` entry points plus per-sponsor accounting (see
+[Advanced Features](#advanced-features)).
 
 ### Frontend Architecture
 
@@ -396,9 +421,10 @@ The system uses three Soroban contracts:
 ```
 dMessage/
 ├── contracts/           # Soroban smart contracts (Rust)
-│   ├── user_registry/   # Profile & key management
-│   ├── social_graph/    # Conversation indexing
-│   └── messages/        # Inbox message storage
+│   ├── user_registry/   # Profile & key management (deprecated, non-gasless)
+│   ├── social_graph/    # Conversation indexing (deprecated, non-gasless)
+│   ├── messages/        # Inbox message storage (deprecated, non-gasless)
+│   └── gasless/         # Current fee-sponsored contracts (in use)
 ├── frontend/            # Next.js 16 application
 │   └── src/
 │       ├── app/         # Pages & routing
@@ -448,6 +474,28 @@ dMessage/
 | Blank/white screen | Reload the page; clear browser cache if persistent |
 | Transaction fails | Ensure you have enough test XLM (use the friendbot) |
 
+## Security
+
+- All smart contracts undergo third-party audit before mainnet deployment
+- Client-side E2EE using standards-compliant Web Crypto API (ECDH + AES-GCM)
+- Bug bounty program via Immunefi (post-launch)
+- Regular dependency updates with Dependabot
+- Formal verification of critical contract functions (in progress)
+
+## Future Scope
+
+- **Group Chats**: Multi-party conversations with shared symmetric keys
+- **Verified Identities**: Keybase-style identity proofs via Stellar assets
+- **Message Reactions**: Emoji reactions stored as contract events
+- **Read Receipts**: Optional delivery and read tracking flags
+- **Communities**: Topic-based public channels with membership management
+- **Moderation Tools**: User-controlled muting, blocking, and reporting
+- **Cross-chain Bridges**: Connect to Ethereum/Solana via Stellar Asset Contracts
+- **DAO Governance**: Token-weighted voting for protocol upgrades and parameters
+- **Accessibility**: WCAG 2.1 AA compliance with full screen reader support
+- **Performance**: IPFS Cluster pinning and CDN gateways for media delivery
+- **Mobile**: React Native app with shared crypto/IPFS primitives
+
 ## Community & Contributions
 
 We welcome contributions of all kinds — code, design, documentation, testing, and feedback.
@@ -471,7 +519,7 @@ cd frontend && npm run build
 Smart contract tests:
 
 ```bash
-cd contracts && cargo test
+cd contracts/gasless && cargo test
 ```
 
 ### Code Guidelines
@@ -490,10 +538,9 @@ cd contracts && cargo test
 ### Community
 
 - **GitHub Discussions**: [Join the conversation](https://github.com/rylsherdamz-rgb/dMessage/discussions)
-- **Twitter/X**: [Launch announcement](https://x.com/ChichiCode0/status/2071606624863858785?s=20)
+- **Twitter/X**: [Launch announcement](https://x.com/ChichiCode0/status/2071606624863858785)
 - **Discord**: [Join our server](https://discord.gg/dmessage) *(coming soon)*
 
-### License
 ## License
 
 MIT

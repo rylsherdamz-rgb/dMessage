@@ -30,7 +30,7 @@ import { registerUser, validateUsername } from '@/lib/registry';
 import { useTheme } from '@/lib/theme';
 
 export default function SettingsPage() {
-  const { isConnected, address, disconnect, signTransaction } = useWallet();
+  const { isConnected, address, disconnect, signTransaction, signAuthEntry } = useWallet();
   const { data: profile, isLoading, refetch } = useProfile(address);
   const { theme, toggle: toggleTheme } = useTheme();
 
@@ -74,7 +74,7 @@ export default function SettingsPage() {
     setSaving(true);
     setStatus(null);
     try {
-      await registerUser(address, name, signTransaction);
+      await registerUser(address, name, signTransaction, signAuthEntry);
       setKeyPresent(true);
       setPubKey(getStoredPublicKeyB64());
       setStatus('Profile submitted on-chain.');

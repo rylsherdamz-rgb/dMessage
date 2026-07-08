@@ -10,6 +10,12 @@ export interface MessageData {
   timestamp: number;
   content: string;
   read: boolean;
+  /**
+   * Position of this message in `inboxOwner`'s on-chain inbox. For messages the
+   * current user *received* this is the index into their own inbox, which is the
+   * value `mark_as_read(caller, index)` expects. Undefined when not applicable.
+   */
+  inboxIndex?: number;
 }
 
 interface RawInboxMessage {
@@ -34,11 +40,12 @@ async function fetchInbox(
       [arg.address(inboxOwner), arg.u32(0), arg.u32(100)],
       source,
     );
-    return (raw ?? []).map((m) => ({
+    return (raw ?? []).map((m, i) => ({
       sender: m.sender,
       timestamp: Number(m.timestamp),
       content: new TextDecoder().decode(new Uint8Array(m.content)),
       read: m.read,
+      inboxIndex: i,
     }));
   } catch {
     return [];
