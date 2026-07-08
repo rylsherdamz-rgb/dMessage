@@ -43,6 +43,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`h-full antialiased ${geistMono.variable}`} suppressHydrationWarning>
       <body className="relative min-h-full flex flex-col font-sans bg-bg text-foreground">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-[var(--accent)] focus:px-4 focus:py-2 focus:text-black focus:outline-none">
+          Skip to content
+        </a>
         {/* Ambient background layers (fixed, behind everything) */}
         <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
           <div className="absolute inset-0 bg-dots opacity-[0.35]" />

@@ -34,7 +34,7 @@ export function ChatShell({
             <ConversationSidebar activeId={activeId} />
           </div>
         </aside>
-        <main className="flex min-w-0 flex-1 flex-col">
+        <main id="main-content" className="flex min-w-0 flex-1 flex-col">
           {/* Mobile hamburger + back */}
           <div className="flex items-center border-b-2 border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-2 md:hidden">
             {activeId ? (

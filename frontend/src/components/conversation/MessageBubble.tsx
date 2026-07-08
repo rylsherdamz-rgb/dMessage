@@ -59,6 +59,8 @@ export function MessageBubble({
 
   const displayText = payload?.t ?? (isCid ? '' : content);
 
+  const timeStr = relativeTime(timestamp);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -67,6 +69,8 @@ export function MessageBubble({
       className={`flex max-w-[80%] items-end gap-2 ${
         isOwn ? 'flex-row-reverse self-end' : 'self-start'
       }`}
+      role="log"
+      aria-label={`Message from ${displayName}, ${timeStr}${read ? ', read' : ''}`}
     >
       {!isOwn && <Avatar seed={senderAddress} size={28} className="mb-5" />}
       <div className="min-w-0">

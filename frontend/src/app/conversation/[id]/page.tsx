@@ -323,6 +323,9 @@ export default function ConversationPage() {
         <div
           ref={scrollRef}
           className="flex flex-1 flex-col gap-2 overflow-y-auto bg-grid p-2 sm:gap-3 sm:p-6"
+          role="log"
+          aria-live="polite"
+          aria-label="Messages"
         >
           {isLoading && (
             <div className="flex items-center justify-center py-16">
@@ -400,6 +403,7 @@ export default function ConversationPage() {
             <div className="relative flex-1">
               <textarea
                 ref={textareaRef}
+                autoFocus
                 value={input}
                 onChange={(e) => {
                   setInput(e.target.value);
