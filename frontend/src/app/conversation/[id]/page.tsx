@@ -12,7 +12,7 @@ import { Nav } from '@/components/layout/Nav';
 import { MessageBubble } from '@/components/conversation/MessageBubble';
 import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
-import { useMessages, messagesQueryKey } from '@/hooks/useMessages';
+import { useMessages, messagesQueryKey, type MessageData } from '@/hooks/useMessages';
 import { useProfile } from '@/hooks/useProfile';
 import { useArchive } from '@/hooks/useArchive';
 import { useWallet } from '@/components/wallet/WalletProvider';
@@ -121,52 +121,19 @@ export default function ConversationPage() {
     setTimeout(() => queryClient.invalidateQueries({ queryKey: key }), 6000);
   }, [address, peerAddress, signTransaction, signAuthEntry, queryClient]);
 
-  // Marks ALL unread messages as read with a single contract call (one popup
-  // instead of N). Uses `markedRef` so re-renders don't re-trigger.
-  const markedRef = useRef(false);
-  const markAllRead = useCallback(async () => {
-    if (!address || !CONTRACT_IDS.messages) return;
-    await writeMaybeSponsored(
-      CONTRACT_IDS.messages,
-      'mark_all_read',
-      [arg.address(address)],
-      address,
-      signTransaction,
-      signAuthEntry,
-    );
-  }, [address, signTransaction, signAuthEntry]);
-
-  // When the thread is open, mark all messages as read in one shot. This drives
-  // the ✓✓ (read) indicator the sender sees.
+  // When the thread is open, optimistically mark all messages as read locally.
+  // No contract write — no wallet popup, no gas fee.
   useEffect(() => {
     if (!address || !peerAddress || !messages?.length) return;
 
-    const hasUnread = messages.some(
-      (m) =>
-        m.sender === peerAddress &&
-        !m.read,
+    const hasUnread = messages.some((m) => m.sender === peerAddress && !m.read);
+    if (!hasUnread) return;
+
+    queryClient.setQueryData<MessageData[]>(
+      messagesQueryKey(address, peerAddress),
+      (prev) => prev?.map((m) => (m.sender === peerAddress ? { ...m, read: true } : m)),
     );
-    if (!hasUnread || markedRef.current) return;
-
-    markedRef.current = true;
-    let cancelled = false;
-    (async () => {
-      try {
-        await markAllRead();
-      } catch (err) {
-        markedRef.current = false;
-        console.warn('[ConversationPage] mark-all-read failed:', err);
-        return;
-      }
-      if (!cancelled) {
-        queryClient.invalidateQueries({ queryKey: messagesQueryKey(address, peerAddress) });
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [messages, address, peerAddress, markAllRead, queryClient]);
+  }, [messages, address, peerAddress, queryClient]);
 
   const attachFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
