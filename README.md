@@ -247,7 +247,7 @@ The deprecated (non-gasless) contracts can still be verified by building
 The deployment manifest with full metadata (current + deprecated) is at
 [`deployment.json`](deployment.json).
 
-*Mainnet addresses to be announced post-audit.*
+*All contracts are deployed on Stellar Testnet only. There is no mainnet deployment.*
 
 ## Getting Started
 
