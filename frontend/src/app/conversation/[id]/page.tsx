@@ -1,9 +1,10 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, Copy, Send, ShieldCheck, X, Paperclip, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Send, ShieldCheck, X, Paperclip, Loader2, Search, ChevronUp, ChevronDown } from 'lucide-react';
+import Fuse from 'fuse.js';
 import { ChatShell } from '@/components/chat/ChatShell';
 import { ConnectGate } from '@/components/layout/ConnectGate';
 import { Nav } from '@/components/layout/Nav';
@@ -34,6 +35,27 @@ export default function ConversationPage() {
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchMatchIdx, setSearchMatchIdx] = useState(0);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const fuse = useMemo(() => {
+    if (!messages) return null;
+    return new Fuse(messages, {
+      keys: ['content'],
+      threshold: 0.4,
+      includeMatches: true,
+    });
+  }, [messages]);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim() || !fuse) return null;
+    return fuse.search(searchQuery.trim());
+  }, [searchQuery, fuse]);
+
+  const searchMatches = searchResults ?? [];
+  const matchedIndices = useMemo(() => searchMatches.map((r) => r.item ? messages?.indexOf(r.item) ?? -1 : -1).filter((i) => i >= 0), [searchMatches, messages]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -235,6 +257,14 @@ export default function ConversationPage() {
             </p>
           </div>
           <button
+            onClick={() => { setShowSearch((s) => !s); setSearchQuery(''); }}
+            aria-label="Search messages"
+            title="Search messages"
+            className="flex h-9 w-9 shrink-0 items-center justify-center text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
+          >
+            <Search className="h-4 w-4" strokeWidth={2} />
+          </button>
+          <button
             onClick={() => {
               hide(peerAddress);
               router.push('/dashboard');
@@ -247,6 +277,49 @@ export default function ConversationPage() {
           </button>
         </header>
 
+        {showSearch && (
+          <div className="flex items-center gap-2 border-b-2 border-[var(--border)] bg-[var(--bg)] px-3 py-2">
+            <Search className="h-4 w-4 shrink-0 text-[var(--text-faint)]" strokeWidth={2} />
+            <input
+              ref={searchRef}
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setSearchMatchIdx(0); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (e.shiftKey) setSearchMatchIdx((i) => i > 0 ? i - 1 : matchedIndices.length - 1);
+                  else setSearchMatchIdx((i) => i < matchedIndices.length - 1 ? i + 1 : 0);
+                }
+              }}
+              placeholder="Search this conversation…"
+              className="min-w-0 flex-1 bg-transparent font-mono text-sm text-[var(--text)] outline-none placeholder-[var(--text-faint)]"
+              autoFocus
+            />
+            {searchQuery.trim() && (
+              <span className="shrink-0 font-mono text-[10px] text-[var(--text-faint)]">
+                {matchedIndices.length > 0
+                  ? `${searchMatchIdx + 1}/${matchedIndices.length}`
+                  : '0/0'}
+              </span>
+            )}
+            {matchedIndices.length > 1 && (
+              <>
+                <button
+                  onClick={() => setSearchMatchIdx((i) => i > 0 ? i - 1 : matchedIndices.length - 1)}
+                  className="text-[var(--text-muted)] hover:text-[var(--accent)]"
+                >
+                  <ChevronUp className="h-4 w-4" strokeWidth={2} />
+                </button>
+                <button
+                  onClick={() => setSearchMatchIdx((i) => i < matchedIndices.length - 1 ? i + 1 : 0)}
+                  className="text-[var(--text-muted)] hover:text-[var(--accent)]"
+                >
+                  <ChevronDown className="h-4 w-4" strokeWidth={2} />
+                </button>
+              </>
+            )}
+          </div>
+        )}
         <div
           ref={scrollRef}
           className="flex flex-1 flex-col gap-2 overflow-y-auto bg-grid p-2 sm:gap-3 sm:p-6"
@@ -268,17 +341,32 @@ export default function ConversationPage() {
               </div>
             </div>
           )}
-          {messages?.map((msg, i) => (
-            <MessageBubble
-              key={`${msg.timestamp}-${i}`}
-              timestamp={msg.timestamp}
-              content={msg.content}
-              isOwn={msg.sender === address}
-              index={i}
-              senderAddress={msg.sender}
-              read={msg.read}
-            />
-          ))}
+          {(() => {
+            const msgs = searchResults && searchQuery.trim()
+              ? searchResults.map((r) => r.item)
+              : (messages ?? []);
+            return msgs.map((msg, i) => {
+              const origIdx = messages?.indexOf(msg) ?? i;
+              const isSearchMatch = matchedIndices.includes(origIdx) && searchQuery.trim();
+              const isActiveMatch = isSearchMatch && matchedIndices[searchMatchIdx] === origIdx;
+              return (
+                <div
+                  key={`${msg.timestamp}-${origIdx}`}
+                  ref={isActiveMatch ? (el) => el?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : undefined}
+                  className={isActiveMatch ? 'ring-2 ring-[var(--accent)] ring-inset' : ''}
+                >
+                  <MessageBubble
+                    timestamp={msg.timestamp}
+                    content={msg.content}
+                    isOwn={msg.sender === address}
+                    index={i}
+                    senderAddress={msg.sender}
+                    read={msg.read}
+                  />
+                </div>
+              );
+            });
+          })()}
         </div>
 
         {sendError && (
