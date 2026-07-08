@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowLeft, Check, Copy, Send, ShieldCheck, X, Paperclip, Loader2, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { ChatShell } from '@/components/chat/ChatShell';
@@ -56,7 +57,18 @@ export default function ConversationPage() {
 
   const searchMatches = searchResults ?? [];
   const matchedIndices = useMemo(() => searchMatches.map((r) => r.item ? messages?.indexOf(r.item) ?? -1 : -1).filter((i) => i >= 0), [searchMatches, messages]);
+  const displayMessages = useMemo(() => {
+    if (searchResults && searchQuery.trim()) return searchResults.map((r) => r.item);
+    return messages ?? [];
+  }, [searchResults, searchQuery, messages]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: displayMessages.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 80,
+    overscan: 10,
+  });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -344,32 +356,33 @@ export default function ConversationPage() {
               </div>
             </div>
           )}
-          {(() => {
-            const msgs = searchResults && searchQuery.trim()
-              ? searchResults.map((r) => r.item)
-              : (messages ?? []);
-            return msgs.map((msg, i) => {
-              const origIdx = messages?.indexOf(msg) ?? i;
-              const isSearchMatch = matchedIndices.includes(origIdx) && searchQuery.trim();
-              const isActiveMatch = isSearchMatch && matchedIndices[searchMatchIdx] === origIdx;
-              return (
-                <div
-                  key={`${msg.timestamp}-${origIdx}`}
-                  ref={isActiveMatch ? (el) => el?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : undefined}
-                  className={isActiveMatch ? 'ring-2 ring-[var(--accent)] ring-inset' : ''}
-                >
-                  <MessageBubble
-                    timestamp={msg.timestamp}
-                    content={msg.content}
-                    isOwn={msg.sender === address}
-                    index={i}
-                    senderAddress={msg.sender}
-                    read={msg.read}
-                  />
-                </div>
-              );
-            });
-          })()}
+          {displayMessages.length > 0 && (
+            <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const msg = displayMessages[virtualItem.index];
+                const origIdx = messages?.indexOf(msg) ?? virtualItem.index;
+                const isSearchMatch = matchedIndices.includes(origIdx) && searchQuery.trim();
+                const isActiveMatch = isSearchMatch && matchedIndices[searchMatchIdx] === origIdx;
+                return (
+                  <div
+                    key={`${msg.timestamp}-${origIdx}`}
+                    ref={isActiveMatch ? (el) => el?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : undefined}
+                    className={`absolute left-0 w-full ${isActiveMatch ? 'ring-2 ring-[var(--accent)] ring-inset' : ''}`}
+                    style={{ height: `${virtualItem.size}px`, transform: `translateY(${virtualItem.start}px)` }}
+                  >
+                    <MessageBubble
+                      timestamp={msg.timestamp}
+                      content={msg.content}
+                      isOwn={msg.sender === address}
+                      index={virtualItem.index}
+                      senderAddress={msg.sender}
+                      read={msg.read}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {sendError && (
