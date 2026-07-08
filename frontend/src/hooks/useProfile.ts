@@ -7,15 +7,12 @@ import { readContract, arg } from '@/lib/soroban';
 export interface UserProfile {
   username: string;
   encryptionPubkey: Uint8Array;
-  createdAt: number;
-  updatedAt: number;
 }
 
 interface RawProfile {
   username: string;
-  encryption_pubkey: Uint8Array;
-  created_at: bigint | number;
-  updated_at: bigint | number;
+  encryption_pubkey: Uint8Array | number[];
+  metadata_ipfs: Uint8Array | number[];
 }
 
 /**
@@ -41,8 +38,6 @@ export function useProfile(address?: string | null) {
         return {
           username: raw.username,
           encryptionPubkey: new Uint8Array(raw.encryption_pubkey),
-          createdAt: Number(raw.created_at),
-          updatedAt: Number(raw.updated_at),
         };
       } catch (err) {
         console.error('[useProfile] query failed:', err);
