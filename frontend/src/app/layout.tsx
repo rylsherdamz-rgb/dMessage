@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { ClientWalletProvider } from "@/components/wallet/ClientWalletProvider";
 import { UsernamePrompt } from "@/components/wallet/UsernamePrompt";
 import { UnreadTitle } from "@/components/UnreadTitle";
+import { RegisterSW } from "@/components/RegisterSW";
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
@@ -24,6 +25,8 @@ export const metadata: Metadata = {
     description: "Censorship-resistant, end-to-end encrypted messaging built on Stellar Soroban.",
     type: "website",
   },
+  manifest: "/manifest.json",
+  icons: [{ rel: "icon", url: "/icon.svg", type: "image/svg+xml" }],
 };
 
 export const viewport: Viewport = {
@@ -57,6 +60,7 @@ export default function RootLayout({
           <Providers>
             <ClientWalletProvider>
               <UnreadTitle />
+              <RegisterSW />
               {children}
               <UsernamePrompt />
             </ClientWalletProvider>
