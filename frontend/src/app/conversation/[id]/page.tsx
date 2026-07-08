@@ -257,11 +257,15 @@ export default function ConversationPage() {
             </div>
           )}
           {!isLoading && messages?.length === 0 && (
-            <div className="flex flex-1 flex-col items-center justify-center gap-2">
-              <Avatar seed={peerAddress} size={56} />
-              <p className="mt-2 font-mono text-xs uppercase tracking-[0.15em] text-[var(--text-muted)]">
-                No messages yet — say hello
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6">
+              <Avatar seed={peerAddress} size={64} />
+              <PeerProfile address={peerAddress} />
+              <p className="font-mono text-xs text-[var(--text-muted)]">
+                This conversation is empty — send the first message
               </p>
+              <div className="mt-2 flex items-center gap-2 font-mono text-[10px] text-[var(--text-faint)]">
+                <span className="rounded border border-[var(--border)] px-2 py-1">Messages are end-to-end encrypted</span>
+              </div>
             </div>
           )}
           {messages?.map((msg, i) => (
@@ -354,5 +358,17 @@ export default function ConversationPage() {
         </div>
       </div>
     </ChatShell>
+  );
+}
+
+function PeerProfile({ address }: { address: string }) {
+  const { data: profile } = useProfile(address);
+  return (
+    <div className="text-center">
+      <p className="font-mono text-sm font-black tracking-tight text-[var(--text)]">
+        {profile?.username ? `@${profile.username}` : `${address.slice(0, 6)}…${address.slice(-4)}`}
+      </p>
+      <p className="mt-0.5 font-mono text-[10px] text-[var(--text-faint)]">{address}</p>
+    </div>
   );
 }

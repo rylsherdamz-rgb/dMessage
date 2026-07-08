@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Loader2, X, Search } from 'lucide-react';
+import { Plus, Loader2, X, Search, MessageSquarePlus } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { relativeTime } from '@/lib/time';
 import { useWallet } from '@/components/wallet/WalletProvider';
@@ -161,11 +161,23 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
         )}
 
         {!isLoading && filtered.length === 0 && (
-          <p className="px-4 py-10 text-center font-mono text-xs text-[var(--text-muted)]">
-            {searchQuery ? 'No matching conversations' : 'No conversations yet.'}
-            <br />
-            {searchQuery ? 'Try a different address' : 'Hit + to start one.'}
-          </p>
+          <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+            {searchQuery ? (
+              <>
+                <Search className="mb-3 h-8 w-8 text-[var(--text-faint)]" strokeWidth={1.5} />
+                <p className="font-mono text-xs text-[var(--text-muted)]">No conversations match your search</p>
+                <p className="mt-1 font-mono text-[10px] text-[var(--text-faint)]">Try a different address</p>
+              </>
+            ) : (
+              <>
+                <MessageSquarePlus className="mb-3 h-8 w-8 text-[var(--text-faint)]" strokeWidth={1.5} />
+                <p className="font-mono text-xs font-bold text-[var(--text-muted)]">No conversations yet</p>
+                <p className="mt-1 font-mono text-[10px] text-[var(--text-faint)]">
+                  Paste a Stellar address above to start a private chat
+                </p>
+              </>
+            )}
+          </div>
         )}
 
         {filtered.map((conv) => {
