@@ -15,12 +15,7 @@ pub struct MessageContract;
 
 #[contractimpl]
 impl MessageContract {
-    pub fn send_message(
-        env: Env,
-        sender: Address,
-        recipient: Address,
-        content: Bytes,
-    ) {
+    pub fn send_message(env: Env, sender: Address, recipient: Address, content: Bytes) {
         sender.require_auth();
         let timestamp = env.ledger().timestamp();
 
@@ -37,9 +32,7 @@ impl MessageContract {
             read: false,
         });
 
-        env.storage()
-            .persistent()
-            .set(&recipient, &inbox);
+        env.storage().persistent().set(&recipient, &inbox);
 
         env.events().publish(
             ("MessageSent", sender.clone(), recipient.clone()),
@@ -47,12 +40,7 @@ impl MessageContract {
         );
     }
 
-    pub fn get_messages(
-        env: Env,
-        user: Address,
-        page: u32,
-        page_size: u32,
-    ) -> Vec<InboxMessage> {
+    pub fn get_messages(env: Env, user: Address, page: u32, page_size: u32) -> Vec<InboxMessage> {
         let inbox: Vec<InboxMessage> = env
             .storage()
             .persistent()
@@ -99,9 +87,7 @@ impl MessageContract {
         let mut msg = inbox.get(index).unwrap();
         msg.read = true;
         inbox.set(index, msg);
-        env.storage()
-            .persistent()
-            .set(&caller, &inbox);
+        env.storage().persistent().set(&caller, &inbox);
     }
 }
 
@@ -286,7 +272,10 @@ mod test {
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             client2.mark_as_read(&alice, &0u32);
         }));
-        assert!(result.is_err(), "mark_as_read for another user should panic");
+        assert!(
+            result.is_err(),
+            "mark_as_read for another user should panic"
+        );
     }
 
     #[test]
