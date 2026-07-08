@@ -19,11 +19,11 @@
       "deploy_tx": "8500bf9f0a0108363aeb5170bc96815e7565bf45278eabcef38d49da7b61463b"
     },
     "messages": {
-      "id": "CBZJY5T4YWK6MAMLX7H6OQU2OM4B5PITOVXV5CXXSJ7R4YCHSHCVNQIE",
-      "wasm_sha256": "a650f2cd86d6703ae0257a739f12ef3bb571b6a0f7aa9fcaf1f3aa1bf6daf81d",
-      "src": "contracts/messages/src/lib.rs",
-      "deploy_tx": "6c564c62dc9c5c44cf47585fa929062e41dcf9abf7978cf6ff7e0e42b7a5607e",
-      "note": "v4 — rebuild from source with correct send_message(sender, recipient, content) signature + set_typing/get_typing"
+      "id": "CDB4HOM2OTITN4BHSJMXDSTAJGUMIQQCPFNDFFIE5PGW3WOOCMIUI7CT",
+      "wasm_sha256": "4fd97d46071b844a9fbfc5345c011ee83b20a68a3f4dfd121a4ef495aa0e7df6",
+      "src": "contracts/gasless/messages_gasless/src/lib.rs",
+      "deploy_tx": "9b7e16613e2e5311452a2c718fd4f498ccb88a36402315e93460a2741639a94b",
+      "note": "v5 — gasless messages with send_message_sponsored for fee-free sending"
     },
   "deprecated": {
     "note": "Superseded contracts kept for reference and on-chain history; no longer used by the frontend.",
