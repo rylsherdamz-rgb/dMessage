@@ -19,12 +19,12 @@
       "deploy_tx": "8500bf9f0a0108363aeb5170bc96815e7565bf45278eabcef38d49da7b61463b"
     },
     "messages": {
-      "id": "CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO",
-      "wasm_sha256": "9133e011abaa8537d6f271378b3920f884976c94adcf4445f1b6f051cb5af26a",
-      "src": "contracts/gasless/messages_gasless/src/lib.rs",
-      "deploy_tx": "1f466d02fbae1244d7cf38c726fcef883478ab991d64eaabb1c25f5e2949848f"
-    }
-  },
+      "id": "CCRPGAL2V6R5THLCXODSN5OLIEXMQF4LU7ODXGNGPBWVVKLQK5GJZJXP",
+      "wasm_sha256": "8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e",
+      "src": "contracts/messages/src/lib.rs",
+      "deploy_tx": "9f422c8c877d2cbac72ffbf06023ba1db28d8c4ddd3e286d3f8b29d931f95d05",
+      "note": "v3 — added set_typing/get_typing for typing indicators"
+    },
   "deprecated": {
     "note": "Superseded contracts kept for reference and on-chain history; no longer used by the frontend.",
     "audited_user_registry_strict_pubkey": {
