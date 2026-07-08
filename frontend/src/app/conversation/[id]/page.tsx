@@ -31,7 +31,7 @@ export default function ConversationPage() {
   const { hide } = useArchive();
   const { data: messages, isLoading } = useMessages(peerAddress);
   const { data: peerProfile } = useProfile(peerAddress);
-  const { isTyping, sendTyping } = useTypingIndicator(peerAddress);
+  const { isTyping } = useTypingIndicator(peerAddress);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -433,7 +433,6 @@ export default function ConversationPage() {
                 onChange={(e) => {
                   setInput(e.target.value);
                   autoResize();
-                  sendTyping();
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
