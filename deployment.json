@@ -1,9 +1,9 @@
 {
   "network": "testnet",
-  "deployed_at": "2026-06-30T09:49:50Z",
-  "git_commit": "4b40a6d",
-  "git_note": "Audited gasless source on branch level6 (see contracts/gasless/SECURITY_AUDIT.md). Deployed from the working tree; this commit contains the exact deployed source for reproducible verification.",
-  "feature": "Security-hardened gasless contracts (audit fixes H-1, H-2, M-1..M-3, L-1..L-4) — fee-sponsored transactions via Stellar fee-bump. UserRegistry redeployed with relaxed pubkey-length validation (accepts the frontend's P-256 SPKI keys).",
+  "deployed_at": "2026-07-08T10:00:00Z",
+  "git_commit": "347a87c",
+  "git_note": "Rebuilt messages contract WASM from updated source with corrected send_message signature (sender, recipient, content) + set_typing/get_typing for typing indicators.",
+  "feature": "Rebuilt and redeployed messages contract (v4) with correct send_message signature matching frontend expectations.",
   "deployer": "GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM",
   "contracts": {
     "user_registry": {
@@ -19,11 +19,11 @@
       "deploy_tx": "8500bf9f0a0108363aeb5170bc96815e7565bf45278eabcef38d49da7b61463b"
     },
     "messages": {
-      "id": "CCRPGAL2V6R5THLCXODSN5OLIEXMQF4LU7ODXGNGPBWVVKLQK5GJZJXP",
-      "wasm_sha256": "8a17841a2e9ad82147154ff43d57d0a9f82bddea4880922208803d546b10bf6e",
+      "id": "CBZJY5T4YWK6MAMLX7H6OQU2OM4B5PITOVXV5CXXSJ7R4YCHSHCVNQIE",
+      "wasm_sha256": "a650f2cd86d6703ae0257a739f12ef3bb571b6a0f7aa9fcaf1f3aa1bf6daf81d",
       "src": "contracts/messages/src/lib.rs",
-      "deploy_tx": "9f422c8c877d2cbac72ffbf06023ba1db28d8c4ddd3e286d3f8b29d931f95d05",
-      "note": "v3 — added set_typing/get_typing for typing indicators"
+      "deploy_tx": "6c564c62dc9c5c44cf47585fa929062e41dcf9abf7978cf6ff7e0e42b7a5607e",
+      "note": "v4 — rebuild from source with correct send_message(sender, recipient, content) signature + set_typing/get_typing"
     },
   "deprecated": {
     "note": "Superseded contracts kept for reference and on-chain history; no longer used by the frontend.",
@@ -73,8 +73,8 @@
     }
   },
   "build": {
-    "command": "stellar contract build",
-    "target": "wasm32v1-none",
+    "command": "cargo build --release --target wasm32-unknown-unknown --manifest-path contracts/messages/Cargo.toml",
+    "target": "wasm32-unknown-unknown",
     "soroban_sdk": "21.7.7",
     "stellar_cli": "27.0.0",
     "rustc": "1.96.0"
