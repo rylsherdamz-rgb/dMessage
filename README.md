@@ -4,7 +4,7 @@
 
 **Live deployment:** [dmessage.vercel.app](https://dmessage.vercel.app)
 **Launch announcement:** [X/Twitter](https://x.com/ChichiCode0/status/2071606624863858785)
-**Promo video:** [`dmessage-promo.mp4`](frontend/public/dmessage-promo.mp4) ([raw](https://raw.githubusercontent.com/rylsherdamz-rgb/dMessage/level5/frontend/public/dmessage-promo.mp4))
+**Promo video:** [`dmessage-promo.mp4`](frontend/public/dmessage-promo.mp4) ([raw](https://raw.githubusercontent.com/rylsherdamz-rgb/dMessage/level6/frontend/public/dmessage-promo.mp4))
 
 ## Project Description
 
@@ -538,7 +538,7 @@ cd contracts/gasless && cargo test
 ### Community
 
 - **GitHub Discussions**: [Join the conversation](https://github.com/rylsherdamz-rgb/dMessage/discussions)
-- **Twitter/X**: [Launch announcement](https://x.com/ChichiCode0/status/2071606624863858785?s=20)
+- **Twitter/X**: [Launch announcement](https://x.com/ChichiCode0/status/2071606624863858785)
 - **Discord**: [Join our server](https://discord.gg/dmessage) *(coming soon)*
 
 ## License
