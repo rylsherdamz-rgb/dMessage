@@ -3,7 +3,7 @@
 **Escape the surveillance. Own your conversations.**
 
 **Live deployment:** [dmessage.vercel.app](https://dmessage.vercel.app)
-**Launch announcement:** [X/Twitter](https://x.com/ChichiCode0/status/2071606624863858785)
+**Launch announcement:** [X/Twitter](https://x.com/ChichiCode0/status/2071622052705157436?s=20)
 **Promo video:** [`dmessage-promo.mp4`](frontend/public/dmessage-promo.mp4) ([raw](https://raw.githubusercontent.com/rylsherdamz-rgb/dMessage/level6/frontend/public/dmessage-promo.mp4))
 
 ## Project Description
