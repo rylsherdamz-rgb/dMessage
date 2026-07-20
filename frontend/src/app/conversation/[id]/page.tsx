@@ -338,9 +338,15 @@ export default function ConversationPage() {
                 return (
                   <div
                     key={`${msg.timestamp}-${origIdx}`}
-                    ref={isActiveMatch ? (el) => el?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : undefined}
+                    ref={(el) => {
+                      virtualizer.measureElement(el);
+                      if (isActiveMatch && el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }}
+                    data-index={virtualItem.index}
                     className={`absolute left-0 w-full ${isActiveMatch ? 'ring-2 ring-[var(--accent)] ring-inset' : ''}`}
-                    style={{ height: `${virtualItem.size}px`, transform: `translateY(${virtualItem.start}px)` }}
+                    style={{ transform: `translateY(${virtualItem.start}px)` }}
                   >
                     <MessageBubble
                       timestamp={msg.timestamp}

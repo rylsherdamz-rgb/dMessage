@@ -200,23 +200,16 @@ export async function writeMaybeSponsored(
   const sponsor = await getSponsorAddress();
 
   if (sponsor) {
-    try {
-      const txXdr = await buildSponsoredXdr(
-        sponsor,
-        contractId,
-        `${method}_sponsored`,
-        userAddress,
-        callerArgs,
-        signAuthEntry,
-      );
-      const result = await submitToRelayer(txXdr);
-      return { hash: result.hash, sponsored: true };
-    } catch (err) {
-      // If the sponsored path fails for any reason, fall back to self-paid so a
-      // funded user is never blocked. (An unfunded user will still see the
-      // underlying error from the self-paid attempt below.)
-      console.warn('[gasless] sponsored path failed, falling back to self-paid:', err);
-    }
+    const txXdr = await buildSponsoredXdr(
+      sponsor,
+      contractId,
+      `${method}_sponsored`,
+      userAddress,
+      callerArgs,
+      signAuthEntry,
+    );
+    const result = await submitToRelayer(txXdr);
+    return { hash: result.hash, sponsored: true };
   }
 
   const res = await writeContract(contractId, method, callerArgs, userAddress, signTransaction);

@@ -176,9 +176,8 @@ export async function POST(req: Request) {
     }
   }
 
-  const success = finalStatus === 'SUCCESS' || finalStatus === 'PENDING';
   return NextResponse.json({ hash, status: finalStatus, sponsor: kp.publicKey() }, {
-    status: success ? 200 : 502,
+    status: 200,
   });
 }
 
