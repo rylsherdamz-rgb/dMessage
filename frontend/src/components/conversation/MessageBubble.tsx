@@ -1,13 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, CheckCheck, File, Download, Loader2 } from 'lucide-react';
+import { Check, CheckCheck, File, Download, Loader2, ImageIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { useProfile } from '@/hooks/useProfile';
 import { relativeTime } from '@/lib/time';
 import { fetchPayload, getIpfsUrl } from '@/lib/ipfs';
 import type { MessagePayload } from '@/lib/ipfs';
+
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif', 'bmp'];
+
+function isImageFile(filename?: string): boolean {
+  if (!filename) return false;
+  const ext = filename.split('.').pop()?.toLowerCase();
+  return ext ? IMAGE_EXTENSIONS.includes(ext) : false;
+}
 
 interface MessageBubbleProps {
   timestamp: number;
@@ -51,6 +59,8 @@ export function MessageBubble({
 
   const displayText = payload?.t ?? (isCid ? '' : content);
 
+  const timeStr = relativeTime(timestamp);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -59,6 +69,8 @@ export function MessageBubble({
       className={`flex max-w-[80%] items-end gap-2 ${
         isOwn ? 'flex-row-reverse self-end' : 'self-start'
       }`}
+      role="log"
+      aria-label={`Message from ${displayName}, ${timeStr}${read ? ', read' : ''}`}
     >
       {!isOwn && <Avatar seed={senderAddress} size={28} className="mb-5" />}
       <div className="min-w-0">
@@ -84,21 +96,44 @@ export function MessageBubble({
             <p className="font-mono text-sm leading-relaxed break-words">{displayText}</p>
           )}
           {!loadingPayload && payload?.f && (
-            <div className={`flex items-center gap-3 ${displayText ? 'mt-2' : ''}`}>
-              <File className="h-8 w-8 shrink-0" strokeWidth={1.5} />
-              <div className="min-w-0">
-                <p className="truncate font-mono text-sm font-bold">{payload.n ?? payload.f.slice(0, 12)}</p>
+            <div className={`${displayText ? 'mt-2' : ''}`}>
+              {isImageFile(payload.n) ? (
                 <a
                   href={getIpfsUrl(payload.f)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider underline underline-offset-2"
                   onClick={(e) => e.stopPropagation()}
+                  className="group relative block overflow-hidden border border-[var(--border)]"
                 >
-                  <Download className="h-3 w-3" strokeWidth={2} />
-                  Download
+                  <img
+                    src={getIpfsUrl(payload.f)}
+                    alt={payload.n ?? 'Image'}
+                    className="max-h-64 w-full object-cover transition-opacity group-hover:opacity-90"
+                    loading="lazy"
+                  />
+                  <div className="absolute bottom-1 right-1 flex items-center gap-1 rounded bg-black/60 px-2 py-0.5 text-[10px] text-white">
+                    <Download className="h-3 w-3" strokeWidth={2} />
+                    {payload.n}
+                  </div>
                 </a>
-              </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <File className="h-8 w-8 shrink-0" strokeWidth={1.5} />
+                  <div className="min-w-0">
+                    <p className="truncate font-mono text-sm font-bold">{payload.n ?? payload.f.slice(0, 12)}</p>
+                    <a
+                      href={getIpfsUrl(payload.f)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider underline underline-offset-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Download className="h-3 w-3" strokeWidth={2} />
+                      Download
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

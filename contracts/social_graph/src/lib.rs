@@ -1,6 +1,6 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, BytesN, Env, Vec};
 use soroban_sdk::xdr::ToXdr;
+use soroban_sdk::{contract, contractimpl, contracttype, Address, BytesN, Env, Vec};
 
 #[derive(Clone)]
 #[contracttype]
@@ -56,17 +56,15 @@ impl SocialGraph {
             .persistent()
             .has::<BytesN<32>>(&conversation_id)
         {
-            env.storage()
-                .persistent()
-                .set::<BytesN<32>, Conversation>(
-                    &conversation_id,
-                    &Conversation {
-                        participant_a: addr1,
-                        participant_b: addr2,
-                        created_at: timestamp,
-                        last_updated: timestamp,
-                    },
-                );
+            env.storage().persistent().set::<BytesN<32>, Conversation>(
+                &conversation_id,
+                &Conversation {
+                    participant_a: addr1,
+                    participant_b: addr2,
+                    created_at: timestamp,
+                    last_updated: timestamp,
+                },
+            );
         } else {
             let mut conv = env
                 .storage()
@@ -160,11 +158,17 @@ mod test {
         let id1 = client.ensure_conversation(&caller, &alice, &bob);
         // Ensure again — should return same ID
         let id2 = client.ensure_conversation(&caller, &alice, &bob);
-        assert_eq!(id1, id2, "same participants should yield same conversation ID");
+        assert_eq!(
+            id1, id2,
+            "same participants should yield same conversation ID"
+        );
 
         // Ensure with participants in reverse order — should yield same ID
         let id3 = client.ensure_conversation(&caller, &bob, &alice);
-        assert_eq!(id1, id3, "reversed participants should yield same conversation ID");
+        assert_eq!(
+            id1, id3,
+            "reversed participants should yield same conversation ID"
+        );
     }
 
     #[test]
@@ -181,7 +185,11 @@ mod test {
 
         assert_eq!(alice_convs.len(), 1, "alice should have 1 conversation ref");
         assert_eq!(bob_convs.len(), 1, "bob should have 1 conversation ref");
-        assert_eq!(alice_convs.get(0).unwrap().conversation_id, bob_convs.get(0).unwrap().conversation_id, "both participants should see same conversation ID");
+        assert_eq!(
+            alice_convs.get(0).unwrap().conversation_id,
+            bob_convs.get(0).unwrap().conversation_id,
+            "both participants should see same conversation ID"
+        );
     }
 
     #[test]
@@ -190,7 +198,10 @@ mod test {
         let user = Address::generate(&env);
 
         let convs = client.get_user_conversations(&user);
-        assert!(convs.is_empty(), "user with no conversations should get empty list");
+        assert!(
+            convs.is_empty(),
+            "user with no conversations should get empty list"
+        );
     }
 
     #[test]
@@ -213,7 +224,12 @@ mod test {
         let alice_convs2 = client.get_user_conversations(&alice);
         let second_ts = alice_convs2.get(0).unwrap().last_updated;
 
-        assert!(second_ts > first_ts, "last_updated should increase on re-ensure ({} ≯ {})", second_ts, first_ts);
+        assert!(
+            second_ts > first_ts,
+            "last_updated should increase on re-ensure ({} ≯ {})",
+            second_ts,
+            first_ts
+        );
     }
 
     #[test]
@@ -229,7 +245,11 @@ mod test {
         client.ensure_conversation(&caller, &alice, &bob);
 
         let alice_convs = client.get_user_conversations(&alice);
-        assert_eq!(alice_convs.len(), 1, "duplicate ensures should not create duplicate refs");
+        assert_eq!(
+            alice_convs.len(),
+            1,
+            "duplicate ensures should not create duplicate refs"
+        );
     }
 
     #[test]
@@ -251,8 +271,12 @@ mod test {
         let mut found_bob = false;
         let mut found_charlie = false;
         for p in peers {
-            if p == bob { found_bob = true; }
-            if p == charlie { found_charlie = true; }
+            if p == bob {
+                found_bob = true;
+            }
+            if p == charlie {
+                found_charlie = true;
+            }
         }
         assert!(found_bob, "should contain bob as peer");
         assert!(found_charlie, "should contain charlie as peer");
@@ -289,7 +313,10 @@ mod test {
             // Use `other` as caller — not the same as the address authorized
             client.ensure_conversation(&other, &caller, &bob);
         }));
-        assert!(result.is_err(), "ensure_conversation should panic without auth");
+        assert!(
+            result.is_err(),
+            "ensure_conversation should panic without auth"
+        );
     }
 
     #[test]
@@ -306,6 +333,9 @@ mod test {
         let id2 = client.ensure_conversation(&charlie, &alice, &bob);
 
         // Should be the same conversation ID
-        assert_eq!(id1, id2, "same participants should yield same ID regardless of who calls");
+        assert_eq!(
+            id1, id2,
+            "same participants should yield same ID regardless of who calls"
+        );
     }
 }

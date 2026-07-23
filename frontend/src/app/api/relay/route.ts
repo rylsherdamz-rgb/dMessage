@@ -7,7 +7,7 @@ import {
   Address,
   xdr,
   scValToNative,
-} from 'stellar-sdk';
+} from '@stellar/stellar-sdk';
 import { CONTRACT_IDS } from '@/lib/contract-ids';
 import { precheck, recordSpend, usageSnapshot } from '@/lib/relay-guard';
 
@@ -176,9 +176,8 @@ export async function POST(req: Request) {
     }
   }
 
-  const success = finalStatus === 'SUCCESS' || finalStatus === 'PENDING';
   return NextResponse.json({ hash, status: finalStatus, sponsor: kp.publicKey() }, {
-    status: success ? 200 : 502,
+    status: 200,
   });
 }
 
