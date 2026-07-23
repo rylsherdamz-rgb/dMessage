@@ -22,7 +22,7 @@ export function useConversations() {
   const { address, isConnected } = useWallet();
 
   return useQuery<ConversationRef[]>({
-    queryKey: ['conversations', address],
+    queryKey: ['conversations', CONTRACT_IDS.socialGraph, address],
     enabled: isConnected && !!address,
     queryFn: async () => {
       if (!address || !CONTRACT_IDS.socialGraph) return [];

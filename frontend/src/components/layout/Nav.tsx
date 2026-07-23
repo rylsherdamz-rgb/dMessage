@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { MessagesSquare, Archive, Settings } from 'lucide-react';
 import { WalletConnector } from '@/components/wallet/WalletConnector';
+import { NetworkBadge } from '@/components/ui/NetworkBadge';
 
 const LINKS = [
   { label: 'Chats', href: '/dashboard', Icon: MessagesSquare },
@@ -41,6 +42,7 @@ export function Nav() {
             );
           })}
         </div>
+        <NetworkBadge />
         <WalletConnector />
       </div>
     </nav>

@@ -25,8 +25,12 @@ interface RawInboxMessage {
   read: boolean;
 }
 
-export function messagesQueryKey(address?: string | null, peerAddress?: string) {
-  return ['messages-thread', address ?? null, peerAddress ?? null] as const;
+export function messagesQueryKey(contractId: string, address?: string | null, peerAddress?: string) {
+  return ['messages-thread', contractId, address ?? null, peerAddress ?? null] as const;
+}
+
+function _mkQueryKey(address?: string | null, peerAddress?: string) {
+  return messagesQueryKey(CONTRACT_IDS.messages, address, peerAddress);
 }
 
 async function fetchInbox(
@@ -56,7 +60,7 @@ export function useMessages(peerAddress: string | undefined) {
   const { address } = useWallet();
 
   return useQuery<MessageData[]>({
-    queryKey: messagesQueryKey(address, peerAddress),
+    queryKey: messagesQueryKey(CONTRACT_IDS.messages, address, peerAddress),
     enabled: !!address && !!CONTRACT_IDS.messages,
     queryFn: async () => {
       if (!address || !CONTRACT_IDS.messages) return [];

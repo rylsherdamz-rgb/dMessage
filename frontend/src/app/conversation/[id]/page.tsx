@@ -116,10 +116,10 @@ export default function ConversationPage() {
       signTransaction,
       signAuthEntry,
     );
-    const key = messagesQueryKey(address, peerAddress);
+    const key = messagesQueryKey(CONTRACT_IDS.messages, address, peerAddress);
     queryClient.invalidateQueries({ queryKey: key });
     setTimeout(() => queryClient.invalidateQueries({ queryKey: key }), 6000);
-  }, [address, peerAddress, signTransaction, signAuthEntry, queryClient]);
+  }, [CONTRACT_IDS.messages, address, peerAddress, signTransaction, signAuthEntry, queryClient]);
 
   // When the thread is open, optimistically mark all messages as read locally.
   // No contract write — no wallet popup, no gas fee.
@@ -130,10 +130,10 @@ export default function ConversationPage() {
     if (!hasUnread) return;
 
     queryClient.setQueryData<MessageData[]>(
-      messagesQueryKey(address, peerAddress),
+      messagesQueryKey(CONTRACT_IDS.messages, address, peerAddress),
       (prev) => prev?.map((m) => (m.sender === peerAddress ? { ...m, read: true } : m)),
     );
-  }, [messages, address, peerAddress, queryClient]);
+  }, [messages, CONTRACT_IDS.messages, address, peerAddress, queryClient]);
 
   const attachFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -1,13 +1,14 @@
 /**
- * dMessage — Soroban Contract Deployment Cost Simulator
+ * dMessage — Soroban Contract Deployment & Operation Cost Simulator.
  *
- * Simulates WASM upload + contract creation on Stellar Soroban testnet
- * and reports estimated costs in stroops, XLM, and USD.
+ * Simulates WASM upload + contract creation + sponsored operations and reports
+ * estimated costs in stroops, XLM, and USD.
  *
  * Usage:
- *   npx tsx tests/estimate-costs.ts
+ *   npx tsx tests/estimate-costs.ts                              # testnet defaults
+ *   STELLAR_NETWORK=mainnet npx tsx tests/estimate-costs.ts      # mainnet
  *   XLM_USD_RATE=0.10 npx tsx tests/estimate-costs.ts
- *   SOROBAN_RPC=https://rpc.ankr.com/stellar_testnet_soroban npx tsx tests/estimate-costs.ts
+ *   SOROBAN_RPC=https://soroban-rpc.mainnet.stellar.gateway.fm npx tsx tests/estimate-costs.ts
  */
 
 import { Keypair, TransactionBuilder, Operation, Account, Networks } from 'stellar-sdk';
@@ -19,7 +20,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const ROOT = resolve(__dirname, '..');
 const WASM_DIR = resolve(ROOT, 'contracts', 'gasless', 'target', 'wasm32v1-none', 'release');
-const RPC_URL = process.env.SOROBAN_RPC ?? 'https://soroban-testnet.stellar.org';
+const IS_MAINNET = process.env.STELLAR_NETWORK === 'mainnet';
+const RPC_URL = process.env.SOROBAN_RPC ?? (
+  IS_MAINNET ? 'https://soroban-rpc.mainnet.stellar.gateway.fm' : 'https://soroban-testnet.stellar.org'
+);
+const NETWORK_PASSPHRASE = IS_MAINNET ? Networks.PUBLIC : Networks.TESTNET;
+const FRIENDBOT_URL = IS_MAINNET ? null : 'https://friendbot.stellar.org';
 const XLM_USD = Number(process.env.XLM_USD_RATE ?? '0.12');
 
 const CONTRACTS = [
@@ -91,7 +97,7 @@ function estimateCreateBySize(bytes: number): number {
 
 async function simulateUploadFee(kp: Keypair, wasmBytes: Buffer, seqNum: string): Promise<number | null> {
   const account = new Account(kp.publicKey(), seqNum);
-  const tx = new TransactionBuilder(account, { fee: '100', networkPassphrase: Networks.TESTNET })
+  const tx = new TransactionBuilder(account, { fee: '100', networkPassphrase: NETWORK_PASSPHRASE })
     .addOperation(Operation.uploadContractWasm({ wasm: wasmBytes, source: kp.publicKey() }))
     .setTimeout(30)
     .build();
@@ -114,7 +120,7 @@ async function simulateCreateFee(kp: Keypair, wasmBytes: Buffer, seqNum: string)
   const salt = crypto.getRandomValues(new Uint8Array(32));
 
   const account = new Account(kp.publicKey(), seqNum);
-  const tx = new TransactionBuilder(account, { fee: '100', networkPassphrase: Networks.TESTNET })
+  const tx = new TransactionBuilder(account, { fee: '100', networkPassphrase: NETWORK_PASSPHRASE })
     .addOperation(Operation.createCustomContract({
       wasmHash: Buffer.from(wasmHash),
       salt: Buffer.from(salt),
@@ -173,7 +179,8 @@ async function main() {
   let seqNum: string | null = null;
 
   try {
-    const fbResp = await fetch(`https://friendbot.stellar.org?addr=${kp.publicKey()}`);
+    if (!FRIENDBOT_URL) throw new Error('friendbot not available on mainnet');
+    const fbResp = await fetch(`${FRIENDBOT_URL}?addr=${kp.publicKey()}`);
     if (!fbResp.ok) throw new Error(`friendbot HTTP ${fbResp.status}`);
 
     // Wait for account to propagate
@@ -323,7 +330,11 @@ async function main() {
   console.log(`    Est. USD          : $${usd(totalStroops)} (at $${XLM_USD}/XLM)`);
   console.log(`    Avg per contract  : ${s(Math.round(totalStroops / 3))} stroops (~$${usd(totalStroops / 3)})`);
   if (!funded) {
-    console.log(`    * Estimates only  : set SOROBAN_RPC to a live testnet + friendbot-able endpoint`);
+    if (IS_MAINNET) {
+      console.log(`    * Mainnet          : friendbot not available; use STELLAR_NETWORK=testnet for live simulation`);
+    } else {
+      console.log(`    * Estimates only  : check SOROBAN_RPC endpoint + friendbot availability`);
+    }
     console.log(`                        for real simulation`);
   }
 

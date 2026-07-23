@@ -28,6 +28,8 @@ import {
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { registerUser, validateUsername } from '@/lib/registry';
 import { useTheme } from '@/lib/theme';
+import { NetworkBadge } from '@/components/ui/NetworkBadge';
+import { getStoredNetwork, setStoredNetwork } from '@/lib/network';
 
 export default function SettingsPage() {
   const { isConnected, address, disconnect, signTransaction, signAuthEntry } = useWallet();
@@ -264,9 +266,16 @@ export default function SettingsPage() {
                 <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">
                   Network
                 </span>
-                <p className="mt-1.5 flex items-center gap-2 font-mono text-sm text-[var(--text)]">
-                  <span className="status-dot bg-[var(--accent)] text-[var(--accent)]" />
-                  Stellar Testnet
+                <div className="mt-1.5 flex items-center justify-between">
+                  <p className="flex items-center gap-2 font-mono text-sm text-[var(--text)]">
+                    <span className="status-dot bg-[var(--accent)] text-[var(--accent)]" />
+                    <NetworkBadge />
+                  </p>
+                </div>
+                <p className="mt-2 font-mono text-[11px] leading-relaxed text-[var(--text-faint)]">
+                  Click to switch between Testnet and Mainnet. Page will reload.
+                  Your profile, conversations, and messages are tied to the network
+                  — you&apos;ll need to register again when switching.
                 </p>
               </div>
 

@@ -1,6 +1,23 @@
 import { rpc, Networks } from '@stellar/stellar-sdk';
+export { CONTRACT_IDS } from './contract-ids';
 
-const RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC ?? 'https://soroban-testnet.stellar.org';
+// ── Runtime override (localStorage — switched by NetworkBadge) ──────────────
+let _runtimeMainnet: boolean | null = null;
+try {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('dmessage:network');
+    _runtimeMainnet = stored === 'mainnet';
+  }
+} catch { /* localStorage unavailable */ }
+
+const ENV_MAINNET = process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet';
+const IS_MAINNET = _runtimeMainnet ?? ENV_MAINNET;
+
+const RPC_URL = _runtimeMainnet === true
+  ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
+  : _runtimeMainnet === false
+    ? 'https://soroban-testnet.stellar.org'
+    : process.env.NEXT_PUBLIC_SOROBAN_RPC ?? 'https://soroban-testnet.stellar.org';
 
 let _server: rpc.Server | null = null;
 
@@ -11,20 +28,4 @@ export function getSorobanServer(): rpc.Server {
   return _server;
 }
 
-// Current deployment: security-hardened gasless / fee-sponsored contracts.
-// Resolved from env (injected from deployment.json via next.config.ts, or set in
-// .env.local); the fallbacks are the current audited testnet addresses so the app
-// works even without env. Previous contracts are deprecated — see README.
-export const CONTRACT_IDS = {
-  userRegistry:
-    process.env.NEXT_PUBLIC_CONTRACT_USER_REGISTRY ??
-    'CDHJHY3LQWJM3PPKGFA6QRDUK2JQU5DQEBFKL42I3UEZNNM6IRFF76DJ',
-  socialGraph:
-    process.env.NEXT_PUBLIC_CONTRACT_SOCIAL_GRAPH ??
-    'CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK',
-  messages:
-    process.env.NEXT_PUBLIC_CONTRACT_MESSAGES ??
-    'CB6A3AMUSDIH7KKZRQ4Y2MT6PSBFQPJND5T5USLQJGTQAPTQ4IIX3QEE',
-} as const;
-
-export const NETWORK_PASSPHRASE = Networks.TESTNET;
+export const NETWORK_PASSPHRASE = IS_MAINNET ? Networks.PUBLIC : Networks.TESTNET;

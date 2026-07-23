@@ -26,7 +26,7 @@ interface RawProfile {
  */
 export function useProfile(address?: string | null) {
   return useQuery<UserProfile | null>({
-    queryKey: ['profile', address],
+    queryKey: ['profile', CONTRACT_IDS.userRegistry, address],
     enabled: !!address && !!CONTRACT_IDS.userRegistry,
     queryFn: async () => {
       if (!address || !CONTRACT_IDS.userRegistry) return null;

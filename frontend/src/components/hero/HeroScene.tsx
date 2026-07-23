@@ -8,6 +8,7 @@ import { ArrowRight } from 'lucide-react';
 import { StellarMascot } from '@/components/hero/StellarMascot';
 import { LogoMark } from '@/components/hero/LogoMark';
 import { WalletConnector } from '@/components/wallet/WalletConnector';
+import { NetworkBadge } from '@/components/ui/NetworkBadge';
 
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
@@ -60,6 +61,7 @@ export function HeroScene() {
           >
             App
           </Link>
+          <NetworkBadge />
         </div>
       </motion.nav>
 

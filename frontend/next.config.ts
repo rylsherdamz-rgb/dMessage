@@ -8,13 +8,15 @@ let env: Record<string, string> = {};
 
 try {
   const dep = JSON.parse(fs.readFileSync(deploymentPath, 'utf-8'));
+  const isMainnet = dep.network === 'mainnet';
   env = {
     NEXT_PUBLIC_CONTRACT_USER_REGISTRY: dep.contracts.user_registry.id,
     NEXT_PUBLIC_CONTRACT_SOCIAL_GRAPH: dep.contracts.social_graph.id,
     NEXT_PUBLIC_CONTRACT_MESSAGES: dep.contracts.messages.id,
-    NEXT_PUBLIC_SOROBAN_RPC: dep.network === 'mainnet'
-      ? 'https://soroban-rpc.mainnet.stellar.org'
-      : 'https://soroban-testnet.stellar.org',
+    NEXT_PUBLIC_STELLAR_NETWORK: isMainnet ? 'mainnet' : 'testnet',
+    NEXT_PUBLIC_SOROBAN_RPC: isMainnet
+      ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
+      : 'https://soroban-testnet.stellar.org'
   };
 } catch {
   // deployment.json not available — rely on .env.local
