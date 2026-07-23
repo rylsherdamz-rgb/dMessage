@@ -249,6 +249,20 @@ The deployment manifest with full metadata (current + deprecated) is at
 
 *All contracts are deployed on Stellar Testnet only. There is no mainnet deployment.*
 
+### Mainnet Deployment
+
+The gasless / fee-sponsored contracts are deployed on **Stellar Mainnet**:
+
+| Contract | Address | WASM Hash (SHA256) |
+|----------|---------|-------------------|
+| UserRegistry (gasless) | `CBXX465FRKWQMWPPX3YDEBHPHC2K2L55VWLCPZCRRZB77ZVDABFC33YY` | `053d3a283dc2fdd605f53420e1f169adc0036b8edbcab16ef38139637ccc5627` |
+| SocialGraph (gasless) | `CBUC7OBYGSMRIHPARU4B77M4LSRPY5X7LSGOGYO3HZXH5RFAPP752CY5` | `435836ec67d6ae80557ff606ee80f6178fbd30a3cc6fc79956b46c486d56ad6a` |
+| MessageContract (gasless) | `CB4YOOUV3MLKN6AMRFETCYAD2HRHFUI45IUUCE3KXAJTZZJYBMOG76WX` | `6f94bcd729179502f0461b1095162d447377fc098571b793dbbca75dfcf1b462` |
+
+Deployed by [`GCJJ7WCTRWLR7YLOWZH6VGCYKZ62HG2N7US7AUQPT762GDN7HFA4Y7Q5`](https://stellar.expert/explorer/public/account/GCJJ7WCTRWLR7YLOWZH6VGCYKZ62HG2N7US7AUQPT762GDN7HFA4Y7Q5).
+
+Explorer: [UserRegistry](https://stellar.expert/explorer/public/contract/CBXX465FRKWQMWPPX3YDEBHPHC2K2L55VWLCPZCRRZB77ZVDABFC33YY) · [SocialGraph](https://stellar.expert/explorer/public/contract/CBUC7OBYGSMRIHPARU4B77M4LSRPY5X7LSGOGYO3HZXH5RFAPP752CY5) · [Messages](https://stellar.expert/explorer/public/contract/CB4YOOUV3MLKN6AMRFETCYAD2HRHFUI45IUUCE3KXAJTZZJYBMOG76WX)
+
 ## Getting Started
 
 ### Prerequisites
@@ -538,7 +552,7 @@ cd contracts/gasless && cargo test
 ### Community
 
 - **GitHub Discussions**: [Join the conversation](https://github.com/rylsherdamz-rgb/dMessage/discussions)
-- **Twitter/X**: [Launch announcement](https://x.com/ChichiCode0/status/2071606624863858785)
+- **Twitter/X**: [Launch announcement](https://x.com/ChichiCode0/status/2071622052705157436)
 - **Discord**: [Join our server](https://discord.gg/dmessage) *(coming soon)*
 
 ## License

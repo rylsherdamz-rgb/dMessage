@@ -1,4 +1,4 @@
-import { rpc, Networks } from 'stellar-sdk';
+import { rpc, Networks } from '@stellar/stellar-sdk';
 
 const RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC ?? 'https://soroban-testnet.stellar.org';
 
@@ -24,7 +24,7 @@ export const CONTRACT_IDS = {
     'CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK',
   messages:
     process.env.NEXT_PUBLIC_CONTRACT_MESSAGES ??
-    'CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO',
+    'CB6A3AMUSDIH7KKZRQ4Y2MT6PSBFQPJND5T5USLQJGTQAPTQ4IIX3QEE',
 } as const;
 
 export const NETWORK_PASSPHRASE = Networks.TESTNET;

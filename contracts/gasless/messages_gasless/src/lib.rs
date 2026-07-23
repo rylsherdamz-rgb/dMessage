@@ -137,6 +137,29 @@ impl MessageContract {
         Self::record_sponsorship(&env, &sponsor, &caller);
     }
 
+    /// Marks every unread message in the caller's inbox as read. Issues one
+    /// storage write per message but only a single auth entry, so it costs
+    /// one wallet popup instead of N.
+    pub fn mark_all_read(env: Env, caller: Address) {
+        caller.require_auth();
+        let total = Self::count(&env, &caller);
+        for i in 0..total {
+            Self::set_read(&env, &caller, i);
+        }
+    }
+
+    /// Gasless variant of `mark_all_read`.
+    pub fn mark_all_read_sponsored(env: Env, sponsor: Address, caller: Address) {
+        sponsor.require_auth();
+        caller.require_auth();
+
+        let total = Self::count(&env, &caller);
+        for i in 0..total {
+            Self::set_read(&env, &caller, i);
+        }
+        Self::record_sponsorship(&env, &sponsor, &caller);
+    }
+
     /// Number of actions a sponsor has paid for through this contract.
     pub fn get_sponsored_count(env: Env, sponsor: Address) -> u32 {
         env.storage()

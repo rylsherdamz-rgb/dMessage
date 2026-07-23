@@ -10,7 +10,7 @@ import {
   nativeToScVal,
   scValToNative,
   xdr,
-} from 'stellar-sdk';
+} from '@stellar/stellar-sdk';
 import { getSorobanServer, NETWORK_PASSPHRASE } from './stellar';
 
 /** ScVal argument builders for contract calls. */
@@ -19,6 +19,7 @@ export const arg = {
   string: (s: string): xdr.ScVal => nativeToScVal(s, { type: 'string' }),
   u32: (n: number): xdr.ScVal => nativeToScVal(n, { type: 'u32' }),
   bytes: (b: Uint8Array): xdr.ScVal => xdr.ScVal.scvBytes(Buffer.from(b)),
+  bool: (b: boolean): xdr.ScVal => nativeToScVal(b),
   none: (): xdr.ScVal => xdr.ScVal.scvVoid(),
 };
 

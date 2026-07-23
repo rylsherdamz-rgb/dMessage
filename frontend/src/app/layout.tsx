@@ -6,6 +6,8 @@ import { Providers } from "@/lib/providers";
 import { ThemeProvider } from "@/lib/theme";
 import { ClientWalletProvider } from "@/components/wallet/ClientWalletProvider";
 import { UsernamePrompt } from "@/components/wallet/UsernamePrompt";
+import { UnreadTitle } from "@/components/UnreadTitle";
+import { RegisterSW } from "@/components/RegisterSW";
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
@@ -23,6 +25,8 @@ export const metadata: Metadata = {
     description: "Censorship-resistant, end-to-end encrypted messaging built on Stellar Soroban.",
     type: "website",
   },
+  manifest: "/manifest.json",
+  icons: [{ rel: "icon", url: "/icon.svg", type: "image/svg+xml" }],
 };
 
 export const viewport: Viewport = {
@@ -39,6 +43,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`h-full antialiased ${geistMono.variable}`} suppressHydrationWarning>
       <body className="relative min-h-full flex flex-col font-sans bg-bg text-foreground">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-[var(--accent)] focus:px-4 focus:py-2 focus:text-black focus:outline-none">
+          Skip to content
+        </a>
         {/* Ambient background layers (fixed, behind everything) */}
         <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
           <div className="absolute inset-0 bg-dots opacity-[0.35]" />
@@ -55,6 +62,8 @@ export default function RootLayout({
         <ThemeProvider>
           <Providers>
             <ClientWalletProvider>
+              <UnreadTitle />
+              <RegisterSW />
               {children}
               <UsernamePrompt />
             </ClientWalletProvider>

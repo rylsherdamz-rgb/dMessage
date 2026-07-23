@@ -1,9 +1,9 @@
 {
   "network": "testnet",
-  "deployed_at": "2026-06-30T09:49:50Z",
-  "git_commit": "4b40a6d",
-  "git_note": "Audited gasless source on branch level6 (see contracts/gasless/SECURITY_AUDIT.md). Deployed from the working tree; this commit contains the exact deployed source for reproducible verification.",
-  "feature": "Security-hardened gasless contracts (audit fixes H-1, H-2, M-1..M-3, L-1..L-4) — fee-sponsored transactions via Stellar fee-bump. UserRegistry redeployed with relaxed pubkey-length validation (accepts the frontend's P-256 SPKI keys).",
+  "deployed_at": "2026-07-08T10:00:00Z",
+  "git_commit": "347a87c",
+  "git_note": "Rebuilt messages contract WASM from updated source with corrected send_message signature (sender, recipient, content) + set_typing/get_typing for typing indicators.",
+  "feature": "Rebuilt and redeployed messages contract (v4) with correct send_message signature matching frontend expectations.",
   "deployer": "GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM",
   "contracts": {
     "user_registry": {
@@ -19,12 +19,12 @@
       "deploy_tx": "8500bf9f0a0108363aeb5170bc96815e7565bf45278eabcef38d49da7b61463b"
     },
     "messages": {
-      "id": "CAGETMAVXLCMB7NLZFF6TPHVAXJAQY4DQ2CTJWPQP5TL32PLQT7IVBEO",
-      "wasm_sha256": "9133e011abaa8537d6f271378b3920f884976c94adcf4445f1b6f051cb5af26a",
+      "id": "CB6A3AMUSDIH7KKZRQ4Y2MT6PSBFQPJND5T5USLQJGTQAPTQ4IIX3QEE",
+      "wasm_sha256": "9bdbc9f47cdc08ce50621a77f314f2ea9cd1925856c452c65f473fa67ae59a07",
       "src": "contracts/gasless/messages_gasless/src/lib.rs",
-      "deploy_tx": "1f466d02fbae1244d7cf38c726fcef883478ab991d64eaabb1c25f5e2949848f"
-    }
-  },
+      "deploy_tx": "e637293cecf7d1844b5eeac4f3bd81066817dacbd4846f4bc0837840b22098e5",
+      "note": "v6 — added mark_all_read / mark_all_read_sponsored for single-popup mark-as-read"
+    },
   "deprecated": {
     "note": "Superseded contracts kept for reference and on-chain history; no longer used by the frontend.",
     "audited_user_registry_strict_pubkey": {
@@ -73,8 +73,8 @@
     }
   },
   "build": {
-    "command": "stellar contract build",
-    "target": "wasm32v1-none",
+    "command": "cargo build --release --target wasm32-unknown-unknown --manifest-path contracts/messages/Cargo.toml",
+    "target": "wasm32-unknown-unknown",
     "soroban_sdk": "21.7.7",
     "stellar_cli": "27.0.0",
     "rustc": "1.96.0"
