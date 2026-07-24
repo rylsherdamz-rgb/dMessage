@@ -64,7 +64,10 @@ mod test {
 
         let profile = client.get_user(&caller).unwrap();
         assert_eq!(profile.username, String::from_str(&env, "alice"));
-        assert_eq!(profile.encryption_pubkey, Bytes::from_array(&env, &[1u8; 32]));
+        assert_eq!(
+            profile.encryption_pubkey,
+            Bytes::from_array(&env, &[1u8; 32])
+        );
         assert!(profile.metadata_ipfs.is_empty());
         assert_eq!(profile.created_at, profile.updated_at);
     }
@@ -106,7 +109,10 @@ mod test {
 
         let profile = client.get_user(&caller).unwrap();
         assert_eq!(profile.username, String::from_str(&env, "alice_updated"));
-        assert_eq!(profile.encryption_pubkey, Bytes::from_array(&env, &[3u8; 32]));
+        assert_eq!(
+            profile.encryption_pubkey,
+            Bytes::from_array(&env, &[3u8; 32])
+        );
         assert_eq!(profile.metadata_ipfs, Bytes::from_array(&env, &[2u8; 32]));
         assert_eq!(profile.updated_at, profile.created_at);
     }
@@ -141,7 +147,12 @@ mod test {
         let caller = Address::generate(&env);
         let empty = String::from_str(&env, "");
 
-        client.register_user(&caller, &empty, &Bytes::from_array(&env, &[1u8; 32]), &Bytes::new(&env));
+        client.register_user(
+            &caller,
+            &empty,
+            &Bytes::from_array(&env, &[1u8; 32]),
+            &Bytes::new(&env),
+        );
 
         let profile = client.get_user(&caller).unwrap();
         assert_eq!(profile.username, String::from_str(&env, ""));
@@ -205,7 +216,14 @@ mod test {
         let client = UserRegistryClient::new(&env, &contract_id);
 
         let caller = Address::generate(&env);
-        let ipfs = Bytes::from_array(&env, &[0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18]);
+        let ipfs = Bytes::from_array(
+            &env,
+            &[
+                0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+                0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14,
+                0x15, 0x16, 0x17, 0x18,
+            ],
+        );
 
         client.register_user(
             &caller,
@@ -215,6 +233,16 @@ mod test {
         );
 
         let profile = client.get_user(&caller).unwrap();
-        assert_eq!(profile.metadata_ipfs, Bytes::from_array(&env, &[0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18]));
+        assert_eq!(
+            profile.metadata_ipfs,
+            Bytes::from_array(
+                &env,
+                &[
+                    0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x01, 0x02, 0x03, 0x04, 0x05,
+                    0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12,
+                    0x13, 0x14, 0x15, 0x16, 0x17, 0x18
+                ]
+            )
+        );
     }
 }

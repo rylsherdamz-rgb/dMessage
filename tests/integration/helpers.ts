@@ -1,13 +1,31 @@
 import { rpc, Contract, Address, xdr, Keypair, TransactionBuilder } from 'stellar-sdk';
 import crypto from 'crypto';
 
-export const RPC_URL = process.env.SOROBAN_RPC ?? 'https://soroban-testnet.stellar.org';
-export const PASSPHRASE = 'Test SDF Network ; September 2015';
+const IS_MAINNET = process.env.STELLAR_NETWORK === 'mainnet';
+
+export const RPC_URL = process.env.SOROBAN_RPC ?? (
+  IS_MAINNET ? 'https://soroban-rpc.mainnet.stellar.gateway.fm' : 'https://soroban-testnet.stellar.org'
+);
+export const PASSPHRASE = IS_MAINNET
+  ? 'Public Global Stellar Network ; September 2015'
+  : 'Test SDF Network ; September 2015';
 
 export const CONTRACTS = {
-  userRegistry: process.env.CONTRACT_USER_REGISTRY ?? 'CCYE3GXN7X4HIDNIEZCPE5WFWELS3SKSLBSHSENBPLNSWVSWFSOMRLIS',
-  socialGraph: process.env.CONTRACT_SOCIAL_GRAPH ?? 'CBQJMPSMYNURVLSLG6FPILRCHDSSBB3EAFFOWWPRMJ4FTUR5H4XWUNL6',
-  messages: process.env.CONTRACT_MESSAGES ?? 'CAFAAKQR56MO63IFCI7GSITV6J3FS47DGHJHQBTVITHIB57IPQ74LZB7',
+  userRegistry: process.env.CONTRACT_USER_REGISTRY ?? (
+    IS_MAINNET
+      ? 'CBXX465FRKWQMWPPX3YDEBHPHC2K2L55VWLCPZCRRZB77ZVDABFC33YY'
+      : 'CCYE3GXN7X4HIDNIEZCPE5WFWELS3SKSLBSHSENBPLNSWVSWFSOMRLIS'
+  ),
+  socialGraph: process.env.CONTRACT_SOCIAL_GRAPH ?? (
+    IS_MAINNET
+      ? 'CBUC7OBYGSMRIHPARU4B77M4LSRPY5X7LSGOGYO3HZXH5RFAPP752CY5'
+      : 'CBQJMPSMYNURVLSLG6FPILRCHDSSBB3EAFFOWWPRMJ4FTUR5H4XWUNL6'
+  ),
+  messages: process.env.CONTRACT_MESSAGES ?? (
+    IS_MAINNET
+      ? 'CB4YOOUV3MLKN6AMRFETCYAD2HRHFUI45IUUCE3KXAJTZZJYBMOG76WX'
+      : 'CAFAAKQR56MO63IFCI7GSITV6J3FS47DGHJHQBTVITHIB57IPQ74LZB7'
+  ),
 } as const;
 
 const server = new rpc.Server(RPC_URL, { allowHttp: true });

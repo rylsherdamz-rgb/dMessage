@@ -1,6 +1,8 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Bytes, Env, Vec};
 
+const TYPING_TTL: u32 = 10; // seconds
+
 #[derive(Clone)]
 #[contracttype]
 pub struct InboxMessage {
@@ -10,17 +12,19 @@ pub struct InboxMessage {
     pub read: bool,
 }
 
+#[derive(Clone)]
+#[contracttype]
+pub struct TypingKey {
+    pub from: Address,
+    pub to: Address,
+}
+
 #[contract]
 pub struct MessageContract;
 
 #[contractimpl]
 impl MessageContract {
-    pub fn send_message(
-        env: Env,
-        sender: Address,
-        recipient: Address,
-        content: Bytes,
-    ) {
+    pub fn send_message(env: Env, sender: Address, recipient: Address, content: Bytes) {
         sender.require_auth();
         let timestamp = env.ledger().timestamp();
 
@@ -37,9 +41,7 @@ impl MessageContract {
             read: false,
         });
 
-        env.storage()
-            .persistent()
-            .set(&recipient, &inbox);
+        env.storage().persistent().set(&recipient, &inbox);
 
         env.events().publish(
             ("MessageSent", sender.clone(), recipient.clone()),
@@ -47,19 +49,14 @@ impl MessageContract {
         );
     }
 
-    pub fn get_messages(
-        env: Env,
-        user: Address,
-        page: u32,
-        page_size: u32,
-    ) -> Vec<InboxMessage> {
+    pub fn get_messages(env: Env, user: Address, page: u32, page_size: u32) -> Vec<InboxMessage> {
         let inbox: Vec<InboxMessage> = env
             .storage()
             .persistent()
             .get(&user)
             .unwrap_or_else(|| Vec::new(&env));
 
-        let total = inbox.len() as u32;
+        let total = inbox.len();
         let start = page * page_size;
         let end = if start + page_size > total {
             total
@@ -86,7 +83,7 @@ impl MessageContract {
             .persistent()
             .get::<Address, Vec<InboxMessage>>(&user)
             .unwrap_or_else(|| Vec::new(&env));
-        inbox.len() as u32
+        inbox.len()
     }
 
     pub fn mark_as_read(env: Env, caller: Address, index: u32) {
@@ -99,9 +96,36 @@ impl MessageContract {
         let mut msg = inbox.get(index).unwrap();
         msg.read = true;
         inbox.set(index, msg);
-        env.storage()
-            .persistent()
-            .set(&caller, &inbox);
+        env.storage().persistent().set(&caller, &inbox);
+    }
+
+    pub fn set_typing(env: Env, from: Address, to: Address, is_typing: bool) {
+        from.require_auth();
+        let key = TypingKey {
+            from: from.clone(),
+            to: to.clone(),
+        };
+        if is_typing {
+            let ts: u64 = env.ledger().timestamp();
+            env.storage().temporary().set(&key, &ts);
+            env.storage()
+                .temporary()
+                .extend_ttl(&key, TYPING_TTL, TYPING_TTL);
+        } else {
+            env.storage().temporary().remove(&key);
+        }
+    }
+
+    pub fn get_typing(env: Env, from: Address, to: Address) -> bool {
+        let key = TypingKey { from, to };
+        let stored: Option<u64> = env.storage().temporary().get(&key);
+        match stored {
+            Some(ts) => {
+                let now = env.ledger().timestamp();
+                now.saturating_sub(ts) < 6
+            }
+            None => false,
+        }
     }
 }
 
@@ -286,7 +310,10 @@ mod test {
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             client2.mark_as_read(&alice, &0u32);
         }));
-        assert!(result.is_err(), "mark_as_read for another user should panic");
+        assert!(
+            result.is_err(),
+            "mark_as_read for another user should panic"
+        );
     }
 
     #[test]

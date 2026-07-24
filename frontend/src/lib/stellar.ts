@@ -1,7 +1,23 @@
-import { rpc, Networks } from 'stellar-sdk';
-import { CONTRACT_IDS as FALLBACK_IDS } from './contract-ids';
+import { rpc, Networks } from '@stellar/stellar-sdk';
+export { CONTRACT_IDS } from './contract-ids';
 
-const RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC ?? 'https://soroban-testnet.stellar.org';
+// ── Runtime override (localStorage — switched by NetworkBadge) ──────────────
+let _runtimeMainnet: boolean | null = null;
+try {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('dmessage:network');
+    _runtimeMainnet = stored === 'mainnet';
+  }
+} catch { /* localStorage unavailable */ }
+
+const ENV_MAINNET = process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet';
+const IS_MAINNET = _runtimeMainnet ?? ENV_MAINNET;
+
+const RPC_URL = _runtimeMainnet === true
+  ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
+  : _runtimeMainnet === false
+    ? 'https://soroban-testnet.stellar.org'
+    : process.env.NEXT_PUBLIC_SOROBAN_RPC ?? 'https://soroban-testnet.stellar.org';
 
 let _server: rpc.Server | null = null;
 
@@ -12,10 +28,4 @@ export function getSorobanServer(): rpc.Server {
   return _server;
 }
 
-export const CONTRACT_IDS = {
-  userRegistry: process.env.NEXT_PUBLIC_CONTRACT_USER_REGISTRY || FALLBACK_IDS.userRegistry,
-  socialGraph: process.env.NEXT_PUBLIC_CONTRACT_SOCIAL_GRAPH || FALLBACK_IDS.socialGraph,
-  messages: process.env.NEXT_PUBLIC_CONTRACT_MESSAGES || FALLBACK_IDS.messages,
-} as const;
-
-export const NETWORK_PASSPHRASE = Networks.TESTNET;
+export const NETWORK_PASSPHRASE = IS_MAINNET ? Networks.PUBLIC : Networks.TESTNET;

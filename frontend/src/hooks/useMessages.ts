@@ -10,6 +10,12 @@ export interface MessageData {
   timestamp: number;
   content: string;
   read: boolean;
+  /**
+   * Position of this message in `inboxOwner`'s on-chain inbox. For messages the
+   * current user *received* this is the index into their own inbox, which is the
+   * value `mark_as_read(caller, index)` expects. Undefined when not applicable.
+   */
+  inboxIndex?: number;
 }
 
 interface RawInboxMessage {
@@ -19,69 +25,61 @@ interface RawInboxMessage {
   read: boolean;
 }
 
-/** React Query key for a conversation thread; exported so callers can invalidate. */
-export function messagesQueryKey(address?: string | null, peerAddress?: string) {
-  return ['messages-thread', address ?? null, peerAddress ?? null] as const;
+export function messagesQueryKey(contractId: string, address?: string | null, peerAddress?: string) {
+  return ['messages-thread', contractId, address ?? null, peerAddress ?? null] as const;
+}
+
+function _mkQueryKey(address?: string | null, peerAddress?: string) {
+  return messagesQueryKey(CONTRACT_IDS.messages, address, peerAddress);
 }
 
 async function fetchInbox(
   inboxOwner: string,
   source: string,
 ): Promise<MessageData[]> {
-  const raw = await readContract<RawInboxMessage[]>(
-    CONTRACT_IDS.messages,
-    'get_messages',
-    [arg.address(inboxOwner), arg.u32(0), arg.u32(100)],
-    source,
-  );
-  return (raw ?? []).map((m) => ({
-    sender: m.sender,
-    timestamp: Number(m.timestamp),
-    content: new TextDecoder().decode(new Uint8Array(m.content)),
-    read: m.read,
-  }));
+  try {
+    const raw = await readContract<RawInboxMessage[]>(
+      CONTRACT_IDS.messages,
+      'get_messages',
+      [arg.address(inboxOwner), arg.u32(0), arg.u32(100)],
+      source,
+    );
+    return (raw ?? []).map((m, i) => ({
+      sender: m.sender,
+      timestamp: Number(m.timestamp),
+      content: new TextDecoder().decode(new Uint8Array(m.content)),
+      read: m.read,
+      inboxIndex: i,
+    }));
+  } catch {
+    return [];
+  }
 }
 
-/**
- * Loads a conversation thread between the connected user and `peerAddress`.
- *
- * The messages contract is an inbox model keyed by recipient: a message I send
- * to the peer lands in the PEER's inbox, and a message the peer sends me lands
- * in MY inbox. So a full two-sided thread requires reading both inboxes:
- *   - my inbox, keeping messages whose sender is the peer   (peer -> me)
- *   - peer's inbox, keeping messages whose sender is me      (me -> peer)
- * The two halves are merged and sorted by timestamp.
- *
- * With no `peerAddress`, returns the connected user's full inbox.
- */
 export function useMessages(peerAddress: string | undefined) {
   const { address } = useWallet();
 
   return useQuery<MessageData[]>({
-    queryKey: messagesQueryKey(address, peerAddress),
+    queryKey: messagesQueryKey(CONTRACT_IDS.messages, address, peerAddress),
     enabled: !!address && !!CONTRACT_IDS.messages,
     queryFn: async () => {
       if (!address || !CONTRACT_IDS.messages) return [];
 
-      try {
-        if (!peerAddress) {
-          return await fetchInbox(address, address);
-        }
-
-        const [myInbox, peerInbox] = await Promise.all([
-          fetchInbox(address, address),
-          fetchInbox(peerAddress, address),
-        ]);
-
-        const received = myInbox.filter((m) => m.sender === peerAddress);
-        const sent = peerInbox.filter((m) => m.sender === address);
-
-        return [...received, ...sent].sort((a, b) => a.timestamp - b.timestamp);
-      } catch (err) {
-        console.error('[useMessages] query failed:', err);
-        return [];
+      if (!peerAddress) {
+        return await fetchInbox(address, address);
       }
+
+      const [myInbox, peerInbox] = await Promise.all([
+        fetchInbox(address, address),
+        fetchInbox(peerAddress, address),
+      ]);
+
+      const received = myInbox.filter((m) => m.sender === peerAddress);
+      const sent = peerInbox.filter((m) => m.sender === address);
+
+      return [...received, ...sent].sort((a, b) => a.timestamp - b.timestamp);
     },
     staleTime: 5_000,
+    refetchInterval: 6_000,
   });
 }
