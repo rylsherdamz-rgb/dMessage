@@ -1,29 +1,29 @@
 {
-  "network": "testnet",
-  "deployed_at": "2026-07-08T10:00:00Z",
-  "git_commit": "347a87c",
-  "git_note": "Rebuilt messages contract WASM from updated source with corrected send_message signature (sender, recipient, content) + set_typing/get_typing for typing indicators.",
-  "feature": "Rebuilt and redeployed messages contract (v4) with correct send_message signature matching frontend expectations.",
+  "network": "mainnet",
+  "deployed_at": "2026-07-23T21:06:30Z",
+  "git_commit": "b288662",
+  "git_note": "Deployed gasless contracts to Stellar mainnet with runtime network toggle.",
+  "feature": "Mainnet deployment — gasless contracts live on mainnet, runtime toggle in NetworkBadge to switch between testnet/mainnet.",
   "deployer": "GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM",
   "contracts": {
     "user_registry": {
-      "id": "CDHJHY3LQWJM3PPKGFA6QRDUK2JQU5DQEBFKL42I3UEZNNM6IRFF76DJ",
+      "id": "CBXX465FRKWQMWPPX3YDEBHPHC2K2L55VWLCPZCRRZB77ZVDABFC33YY",
       "wasm_sha256": "053d3a283dc2fdd605f53420e1f169adc0036b8edbcab16ef38139637ccc5627",
       "src": "contracts/gasless/user_registry_gasless/src/lib.rs",
-      "note": "M-2 pubkey validation relaxed to non-empty + <=128 bytes to accept Web Crypto ECDH P-256 SPKI keys (~91 bytes)."
+      "note": "Mainnet — M-2 pubkey validation relaxed to non-empty + <=128 bytes to accept Web Crypto ECDH P-256 SPKI keys (~91 bytes)."
     },
     "social_graph": {
-      "id": "CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK",
+      "id": "CBUC7OBYGSMRIHPARU4B77M4LSRPY5X7LSGOGYO3HZXH5RFAPP752CY5",
       "wasm_sha256": "435836ec67d6ae80557ff606ee80f6178fbd30a3cc6fc79956b46c486d56ad6a",
       "src": "contracts/gasless/social_graph_gasless/src/lib.rs",
-      "deploy_tx": "8500bf9f0a0108363aeb5170bc96815e7565bf45278eabcef38d49da7b61463b"
+      "deploy_tx": ""
     },
     "messages": {
-      "id": "CB6A3AMUSDIH7KKZRQ4Y2MT6PSBFQPJND5T5USLQJGTQAPTQ4IIX3QEE",
+      "id": "CB4YOOUV3MLKN6AMRFETCYAD2HRHFUI45IUUCE3KXAJTZZJYBMOG76WX",
       "wasm_sha256": "9bdbc9f47cdc08ce50621a77f314f2ea9cd1925856c452c65f473fa67ae59a07",
       "src": "contracts/gasless/messages_gasless/src/lib.rs",
-      "deploy_tx": "e637293cecf7d1844b5eeac4f3bd81066817dacbd4846f4bc0837840b22098e5",
-      "note": "v6 — added mark_all_read / mark_all_read_sponsored for single-popup mark-as-read"
+      "deploy_tx": "",
+      "note": "Mainnet — v6 with mark_all_read / mark_all_read_sponsored"
     },
   "deprecated": {
     "note": "Superseded contracts kept for reference and on-chain history; no longer used by the frontend.",
