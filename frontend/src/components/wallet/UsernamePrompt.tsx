@@ -7,8 +7,9 @@ import { useWallet } from '@/components/wallet/WalletProvider';
 import { useProfile } from '@/hooks/useProfile';
 import { Avatar } from '@/components/ui/Avatar';
 import { validateUsername, checkUsernameAvailable, registerUser } from '@/lib/registry';
+import { getStoredNetwork } from '@/lib/network';
 
-const DISMISS_KEY = 'dmessage:username-prompt-dismissed';
+const DISMISS_KEY_PREFIX = 'dmessage:username-prompt-dismissed';
 
 type AvailState =
   | { kind: 'idle' }
@@ -32,17 +33,20 @@ export function UsernamePrompt() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissKey = address
+    ? `${DISMISS_KEY_PREFIX}:${getStoredNetwork()}:${address}`
+    : null;
 
   // Restore dismissal (per session) so we don't nag.
   useEffect(() => {
     try {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDismissed(sessionStorage.getItem(DISMISS_KEY) === '1');
+      setDismissed(dismissKey ? sessionStorage.getItem(dismissKey) === '1' : false);
     } catch {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDismissed(false);
     }
-  }, []);
+  }, [dismissKey]);
 
   const open = useMemo(
     () => isConnected && !!address && isFetched && !isLoading && !profile && !dismissed,
@@ -80,7 +84,7 @@ export function UsernamePrompt() {
 
   const dismiss = () => {
     try {
-      sessionStorage.setItem(DISMISS_KEY, '1');
+      if (dismissKey) sessionStorage.setItem(dismissKey, '1');
     } catch {
       /* ignore */
     }

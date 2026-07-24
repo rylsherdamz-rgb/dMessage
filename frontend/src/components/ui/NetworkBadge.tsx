@@ -1,18 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
 import { getStoredNetwork, setStoredNetwork, type StellarNetwork } from '@/lib/network';
 
-export function NetworkBadge() {
-  const [network, setNetwork] = useState<StellarNetwork>('testnet');
+const NETWORK_CHANGE_EVENT = 'dmessage:network-change';
 
-  useEffect(() => {
-    setNetwork(getStoredNetwork());
-  }, []);
+function subscribeToNetwork(callback: () => void) {
+  window.addEventListener('storage', callback);
+  window.addEventListener(NETWORK_CHANGE_EVENT, callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener(NETWORK_CHANGE_EVENT, callback);
+  };
+}
+
+function getDeploymentNetwork(): StellarNetwork {
+  return process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet' ? 'mainnet' : 'testnet';
+}
+
+export function NetworkBadge() {
+  const network = useSyncExternalStore(
+    subscribeToNetwork,
+    getStoredNetwork,
+    getDeploymentNetwork,
+  );
 
   const toggle = () => {
     const next: StellarNetwork = network === 'mainnet' ? 'testnet' : 'mainnet';
     setStoredNetwork(next);
+    window.dispatchEvent(new Event(NETWORK_CHANGE_EVENT));
     window.location.reload();
   };
 

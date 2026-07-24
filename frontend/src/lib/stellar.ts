@@ -6,7 +6,7 @@ let _runtimeMainnet: boolean | null = null;
 try {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem('dmessage:network');
-    _runtimeMainnet = stored === 'mainnet';
+    _runtimeMainnet = stored === 'mainnet' ? true : stored === 'testnet' ? false : null;
   }
 } catch { /* localStorage unavailable */ }
 

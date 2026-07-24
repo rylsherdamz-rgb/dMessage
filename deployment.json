@@ -24,7 +24,8 @@
       "src": "contracts/gasless/messages_gasless/src/lib.rs",
       "deploy_tx": "",
       "note": "Mainnet — v6 with mark_all_read / mark_all_read_sponsored"
-    },
+    }
+  },
   "deprecated": {
     "note": "Superseded contracts kept for reference and on-chain history; no longer used by the frontend.",
     "audited_user_registry_strict_pubkey": {

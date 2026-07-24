@@ -33,3 +33,5 @@ frontend/src/remotion/
 frontend/remotion.config.ts
 frontend/render.sh
 images/analytics.png
+.env*
+register_batch.sh

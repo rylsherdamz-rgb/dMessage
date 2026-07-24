@@ -18,8 +18,14 @@ try {
       ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
       : 'https://soroban-testnet.stellar.org'
   };
-} catch {
-  // deployment.json not available — rely on .env.local
+} catch (error) {
+  // A malformed deployment manifest would otherwise make production silently
+  // fall back to testnet defaults, leaving the client and relayer on different
+  // networks. Local development can still provide the values through .env.local.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(`Unable to load deployment.json: ${(error as Error).message}`);
+  }
+  console.warn(`Unable to load deployment.json: ${(error as Error).message}`);
 }
 
 const nextConfig: NextConfig = {
