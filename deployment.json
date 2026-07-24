@@ -4,7 +4,7 @@
   "git_commit": "b288662",
   "git_note": "Deployed gasless contracts to Stellar mainnet with runtime network toggle.",
   "feature": "Mainnet deployment — gasless contracts live on mainnet, runtime toggle in NetworkBadge to switch between testnet/mainnet.",
-  "deployer": "GDTPJE3COWLAYGDQ4GOGZF64CLHME6HJ5AVDO2ZC44HZXCHJZUXCEPAM",
+  "deployer": "GCJJ7WCTRWLR7YLOWZH6VGCYKZ62HG2N7US7AUQPT762GDN7HFA4Y7Q5",
   "contracts": {
     "user_registry": {
       "id": "CBXX465FRKWQMWPPX3YDEBHPHC2K2L55VWLCPZCRRZB77ZVDABFC33YY",
