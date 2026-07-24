@@ -166,6 +166,36 @@ interface RelayResult {
   sponsor: string;
 }
 
+const CONFIRM_POLL_MS = 1_000;
+const CONFIRM_TIMEOUT_MS = 60_000;
+
+/**
+ * Waits for an already accepted sponsored transaction without holding the
+ * relay request open. Call this in the background to refresh UI state after a
+ * mainnet ledger confirms the transaction.
+ */
+export async function waitForSponsoredTransaction(hash: string): Promise<void> {
+  const server = getSorobanServer();
+  const deadline = Date.now() + CONFIRM_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    try {
+      const result = await server.getTransaction(hash);
+      if (result.status === 'SUCCESS') return;
+      if (result.status === 'FAILED') {
+        throw new Error('Sponsored transaction failed on-chain');
+      }
+    } catch (error) {
+      // A missing transaction is normal until the next ledger closes. Preserve
+      // final failure errors, but retry transient RPC errors until the timeout.
+      if ((error as Error).message === 'Sponsored transaction failed on-chain') throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, CONFIRM_POLL_MS));
+  }
+
+  throw new Error('Transaction confirmation timed out');
+}
+
 /** Submits a user-authorized sponsored transaction to the relayer for co-signing. */
 async function submitToRelayer(txXdr: string): Promise<RelayResult> {
   const res = await fetch('/api/relay', {

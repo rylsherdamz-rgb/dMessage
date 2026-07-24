@@ -18,7 +18,7 @@ import { useArchive } from '@/hooks/useArchive';
 import { useWallet } from '@/components/wallet/WalletProvider';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { arg } from '@/lib/soroban';
-import { writeMaybeSponsored } from '@/lib/gasless';
+import { waitForSponsoredTransaction, writeMaybeSponsored } from '@/lib/gasless';
 import { uploadToIpfs, uploadPayload } from '@/lib/ipfs';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 
@@ -108,7 +108,7 @@ export default function ConversationPage() {
   const sendMessage = useCallback(async (text: string) => {
     if (!address || !peerAddress || !CONTRACT_IDS.messages) return;
     const contentBytes = new TextEncoder().encode(text);
-    await writeMaybeSponsored(
+    const result = await writeMaybeSponsored(
       CONTRACT_IDS.messages,
       'send_message',
       [arg.address(address), arg.address(peerAddress), arg.bytes(contentBytes)],
@@ -117,8 +117,11 @@ export default function ConversationPage() {
       signAuthEntry,
     );
     const key = messagesQueryKey(CONTRACT_IDS.messages, address, peerAddress);
-    queryClient.invalidateQueries({ queryKey: key });
-    setTimeout(() => queryClient.invalidateQueries({ queryKey: key }), 6000);
+    void waitForSponsoredTransaction(result.hash)
+      .then(() => queryClient.invalidateQueries({ queryKey: key }))
+      .catch((confirmationError) => {
+        console.error('[Conversation] message confirmation failed:', confirmationError);
+      });
   }, [CONTRACT_IDS.messages, address, peerAddress, signTransaction, signAuthEntry, queryClient]);
 
   // When the thread is open, optimistically mark all messages as read locally.

@@ -12,7 +12,7 @@ import { useArchive } from '@/hooks/useArchive';
 import { useUnreadCount } from '@/hooks/useUnread';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { arg } from '@/lib/soroban';
-import { writeMaybeSponsored } from '@/lib/gasless';
+import { waitForSponsoredTransaction, writeMaybeSponsored } from '@/lib/gasless';
 
 export function ConversationSidebar({ activeId }: { activeId?: string }) {
   const { address, signTransaction, signAuthEntry } = useWallet();
@@ -49,7 +49,7 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
     setCreating(true);
     setCreateError(null);
     try {
-      await writeMaybeSponsored(
+      const result = await writeMaybeSponsored(
         CONTRACT_IDS.socialGraph,
         'ensure_conversation',
         [arg.address(address), arg.address(address), arg.address(peer)],
@@ -59,7 +59,12 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
       );
       setNewPeer('');
       setShowNew(false);
-      await refetch();
+      void waitForSponsoredTransaction(result.hash)
+        .then(() => refetch())
+        .catch((confirmationError) => {
+          console.error('[Sidebar] new conversation confirmation failed:', confirmationError);
+          setCreateError('Transaction did not confirm — please try again');
+        });
     } catch (err) {
       console.error('[Sidebar] new conversation failed:', err);
       setCreateError('Transaction failed — check the address and try again');

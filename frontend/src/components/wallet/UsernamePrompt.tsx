@@ -8,6 +8,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { Avatar } from '@/components/ui/Avatar';
 import { validateUsername, checkUsernameAvailable, registerUser } from '@/lib/registry';
 import { getStoredNetwork } from '@/lib/network';
+import { waitForSponsoredTransaction } from '@/lib/gasless';
 
 const DISMISS_KEY_PREFIX = 'dmessage:username-prompt-dismissed';
 
@@ -96,8 +97,14 @@ export function UsernamePrompt() {
     setSubmitting(true);
     setError(null);
     try {
-      await registerUser(address, value.trim(), signTransaction, signAuthEntry);
-      await refetch();
+      const result = await registerUser(address, value.trim(), signTransaction, signAuthEntry);
+      // The relay has accepted the transaction. Confirm and refresh the profile
+      // in the background instead of holding this dialog open for mainnet.
+      void waitForSponsoredTransaction(result.hash)
+        .then(() => refetch())
+        .catch((confirmationError) => {
+          console.error('[UsernamePrompt] registration confirmation failed:', confirmationError);
+        });
       dismiss();
     } catch (err) {
       console.error('[UsernamePrompt] register failed:', err);

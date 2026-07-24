@@ -27,6 +27,7 @@ import {
 } from '@/lib/keystore';
 import { CONTRACT_IDS } from '@/lib/stellar';
 import { registerUser, validateUsername } from '@/lib/registry';
+import { waitForSponsoredTransaction } from '@/lib/gasless';
 import { useTheme } from '@/lib/theme';
 import { NetworkBadge } from '@/components/ui/NetworkBadge';
 import { getStoredNetwork, setStoredNetwork } from '@/lib/network';
@@ -76,11 +77,19 @@ export default function SettingsPage() {
     setSaving(true);
     setStatus(null);
     try {
-      await registerUser(address, name, signTransaction, signAuthEntry);
+      const result = await registerUser(address, name, signTransaction, signAuthEntry);
       setKeyPresent(true);
       setPubKey(getStoredPublicKeyB64());
-      setStatus('Profile submitted on-chain.');
-      refetch();
+      setStatus('Profile submitted — confirming on-chain.');
+      void waitForSponsoredTransaction(result.hash)
+        .then(() => {
+          setStatus('Profile updated on-chain.');
+          return refetch();
+        })
+        .catch((confirmationError) => {
+          console.error('[Settings] registration confirmation failed:', confirmationError);
+          setStatus('Profile transaction did not confirm — please try again.');
+        });
     } catch (err) {
       console.error('[Settings] register failed:', err);
       setStatus('Registration failed — see console for details.');

@@ -160,23 +160,10 @@ export async function POST(req: Request) {
   // even if the Soroban call ultimately fails, so record the spend + action now.
   recordSpend({ caller: validation.caller, method: validation.method, feeStroops });
 
-  // Best-effort short poll so the client gets a final status.
-  const hash = send.hash;
-  let finalStatus: string = send.status;
-  for (let i = 0; i < 10; i++) {
-    await new Promise((r) => setTimeout(r, 1000));
-    try {
-      const got = await server.getTransaction(hash);
-      if (got.status !== 'NOT_FOUND') {
-        finalStatus = got.status;
-        if (got.status === 'SUCCESS' || got.status === 'FAILED') break;
-      }
-    } catch {
-      // keep polling
-    }
-  }
-
-  return NextResponse.json({ hash, status: finalStatus, sponsor: kp.publicKey() }, {
+  // Acknowledging acceptance immediately keeps the wallet UI responsive on
+  // mainnet. The browser watches this hash in the background and refreshes its
+  // data once the transaction reaches a final status.
+  return NextResponse.json({ hash: send.hash, status: send.status, sponsor: kp.publicKey() }, {
     status: 200,
   });
 }
