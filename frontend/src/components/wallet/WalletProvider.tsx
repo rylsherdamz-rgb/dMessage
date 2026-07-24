@@ -28,7 +28,7 @@ export interface AuthEntrySignature {
 
 const STORAGE_KEY = 'dmessage:network';
 
-function getNetwork(): string {
+function getNetwork(): Networks {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'mainnet') return Networks.PUBLIC;
