@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   StellarWalletsKit,
   Networks,
@@ -18,7 +19,6 @@ import {
   WatchWalletChanges,
 } from '@stellar/freighter-api';
 import { Buffer } from 'buffer';
-import type { ReactNode } from 'react';
 
 /** Signature returned by a wallet over a Soroban auth-entry preimage. */
 export interface AuthEntrySignature {
@@ -26,9 +26,18 @@ export interface AuthEntrySignature {
   publicKey: string;
 }
 
-const NETWORK = process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet'
-  ? Networks.PUBLIC
-  : Networks.TESTNET;
+const STORAGE_KEY = 'dmessage:network';
+
+function getNetwork(): string {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'mainnet') return Networks.PUBLIC;
+    if (stored === 'testnet') return Networks.TESTNET;
+  }
+  return process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet'
+    ? Networks.PUBLIC
+    : Networks.TESTNET;
+}
 
 interface WalletContext {
   address: string | null;
@@ -89,7 +98,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         new LobstrModule(),
         new HanaModule(),
       ],
-      network: NETWORK,
+      network: getNetwork(),
     });
 
     // Original Freighter auto-detect
@@ -133,14 +142,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signTransaction = useCallback(async (xdr: string): Promise<string> => {
+    const network = getNetwork();
     try {
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
-        networkPassphrase: NETWORK,
+        networkPassphrase: network,
       });
       return signedTxXdr;
     } catch {
       const { signedTxXdr } = await freighterSign(xdr, {
-        networkPassphrase: 'Test SDF Network ; September 2015',
+        networkPassphrase: network,
       });
       return signedTxXdr;
     }
@@ -149,10 +159,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const signAuthEntry = useCallback(
     async (preimageXdrBase64: string): Promise<AuthEntrySignature> => {
       if (!address) throw new Error('Wallet not connected');
+      const network = getNetwork();
       // Prefer the multi-wallet kit; fall back to Freighter directly.
       try {
         const res = await StellarWalletsKit.signAuthEntry(preimageXdrBase64, {
-          networkPassphrase: NETWORK,
+          networkPassphrase: network,
           address,
         });
         if (!res.signedAuthEntry) throw new Error('Empty auth-entry signature');
