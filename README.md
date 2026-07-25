@@ -330,6 +330,14 @@ Users registered and interacting via the deployed Soroban contracts on testnet:
 ![Social graph usage](images/proof_of_users/social_graph.png)
 ![Message contract usage](images/proof_of_users/message_contract.png)
 
+## Proof of Transactions — Mainnet
+
+Live on-chain activity across all three contracts deployed on **Stellar Mainnet**:
+
+![User registry mainnet](images/mainetnet/user_registry_main.png)
+![Social graph mainnet](images/mainetnet/social_graph_main.png)
+![Message contract mainnet](images/mainetnet/message_main.png)
+
 ## Vercel Analytics
 
 ![Vercel analytics](images/vercel_analystics.png)

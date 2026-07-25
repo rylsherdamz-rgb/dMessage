@@ -35,3 +35,4 @@ frontend/render.sh
 images/analytics.png
 .env*
 register_batch.sh
+tests/scripts/data/
