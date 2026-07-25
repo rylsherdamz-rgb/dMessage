@@ -16,6 +16,18 @@ frontend/next-env.d.ts/
 contracts/node_modules
 
 tests/node_modules/
+tests/
+
+# Mainnet scripts and sensitive test data — never commit
+issuev1.md
+tests/scripts/*mainnet*
+tests/scripts/_fund-accounts.cjs
+tests/scripts/_merge-accounts.cjs
+tests/scripts/_recover-accounts.cjs
+tests/scripts/_sponsored-invoke.cjs
+tests/scripts/cycle*.cjs
+tests/scripts/run-all.sh
+tests/scripts/run-batch-*.cjs
 
 
 # OS
