@@ -4,7 +4,9 @@
 
 **Live deployment:** [dmessage.vercel.app](https://dmessage.vercel.app)
 **Launch announcement:** [X/Twitter](https://x.com/ChichiCode0/status/2071622052705157436?s=20)
-**Promo video:** [`dmessage-promo.mp4`](frontend/public/dmessage-promo.mp4) ([raw](https://raw.githubusercontent.com/rylsherdamz-rgb/dMessage/level6/frontend/public/dmessage-promo.mp4))
+**Promo video:**
+
+<video src="https://raw.githubusercontent.com/rylsherdamz-rgb/dMessage/level6/frontend/public/dmessage-promo.mp4" controls autoplay loop muted playsinline style="max-width:100%;border-radius:12px;"></video>
 
 ## Project Description
 
@@ -349,8 +351,10 @@ dMessage was user-tested with 20 participants who provided feedback via Google F
 
 | Resource | Link |
 |----------|------|
-| Feedback Form (submit) | [Google Form](https://docs.google.com/forms/d/e/1FAIpQLSc7hyuuQ1cFdldSA9DytbcR9kwo9EXT2DLPiszzqrrfrfwKVQ/viewform) |
-| Response Spreadsheet | [Google Sheets](https://docs.google.com/spreadsheets/d/1Mif_PoLEXyziO1vClWaE9RXGxwJ5rDX-RVXyJ128YbA/edit?resourcekey=&gid=213717360#gid=213717360) |
+| Feedback Form (testnet) | [Google Form](https://docs.google.com/forms/d/e/1FAIpQLSc7hyuuQ1cFdldSA9DytbcR9kwo9EXT2DLPiszzqrrfrfwKVQ/viewform) |
+| Response Spreadsheet (testnet) | [Google Sheets](https://docs.google.com/spreadsheets/d/1Mif_PoLEXyziO1vClWaE9RXGxwJ5rDX-RVXyJ128YbA/edit?resourcekey=&gid=213717360#gid=213717360) |
+| Feedback Form (mainnet) | [Google Form](https://docs.google.com/forms/d/1zyI5leUeJs8zXXplWS0bevn90VjuJLDtx1kdT9P-jPs) |
+| Response Spreadsheet (mainnet) | [Google Sheets](https://docs.google.com/spreadsheets/d/1u0ba0UQ0kQsyYf9Z12CEDyTedTqyoJE17AXHWmzmjRA/edit?resourcekey=&gid=2076078332#gid=2076078332) |
 
 **Top requested improvements (ordered by frequency):**
 
@@ -369,7 +373,11 @@ Full details available in the [response spreadsheet](https://docs.google.com/spr
 
 - **User Feedback Folder:** `user_feedback/` ([Excel export](user_feedback/dMessage%20FeedBack%20%28Responses%29.xlsx))
 
-**Demo video:** [`dmessage-promo.mp4`](frontend/public/dmessage-promo.mp4) — [Watch on Google Drive (backup)](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
+**Demo video:**
+
+<video src="https://raw.githubusercontent.com/rylsherdamz-rgb/dMessage/level6/frontend/public/dmessage-promo.mp4" controls autoplay loop muted playsinline style="max-width:100%;border-radius:12px;"></video>
+
+[Watch on Google Drive (backup)](https://drive.google.com/file/d/1q4tBQcAu1VbC3sjbPo7HwJt_wO5Mg772/view?usp=sharing)
 
 ### User Feedback Iteration Summary
 
