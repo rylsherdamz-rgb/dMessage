@@ -14,21 +14,23 @@ export function ChatShell({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Close sidebar on route change (when activeId changes)
-  useEffect(() => {
+  // Close sidebar when activeId changes (navigation occurred)
+  const [prevActiveId, setPrevActiveId] = useState(activeId);
+  if (prevActiveId !== activeId) {
+    setPrevActiveId(activeId);
     setSidebarOpen(false);
-  }, [activeId]);
+  }
 
   // Close sidebar on escape key
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && sidebarOpen) {
+      if (e.key === 'Escape') {
         setSidebarOpen(false);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [sidebarOpen]);
+  }, []);
 
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {

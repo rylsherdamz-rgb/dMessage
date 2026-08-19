@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AtSign, Check, Loader2, X, AlertCircle } from 'lucide-react';
 import { useWallet } from '@/components/wallet/WalletProvider';
@@ -30,57 +30,64 @@ export function UsernamePrompt() {
 
   const [dismissed, setDismissed] = useState(true);
   const [value, setValue] = useState('');
-  const [avail, setAvail] = useState<AvailState>({ kind: 'idle' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissKey = address
     ? `${DISMISS_KEY_PREFIX}:${getStoredNetwork()}:${address}`
     : null;
 
-  // Restore dismissal (per session) so we don't nag.
-  useEffect(() => {
+  // Restore dismissal (per session) when the wallet connects or the key changes.
+  const [prevDismissKey, setPrevDismissKey] = useState<string | null>(null);
+  if (prevDismissKey !== dismissKey) {
+    setPrevDismissKey(dismissKey);
     try {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDismissed(dismissKey ? sessionStorage.getItem(dismissKey) === '1' : false);
     } catch {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDismissed(false);
     }
-  }, [dismissKey]);
+  }
 
   const open = useMemo(
     () => isConnected && !!address && isFetched && !isLoading && !profile && !dismissed,
     [isConnected, address, isFetched, isLoading, profile, dismissed],
   );
 
-  // Debounced live validation + availability.
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!value) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAvail({ kind: 'idle' });
-      return;
-    }
+  // Result of the last completed availability check, keyed by the value it was for.
+  const [checked, setChecked] = useState<{ value: string; result: 'available' | 'taken'; reason?: string } | null>(null);
+
+  // Derive the immediate availability state from the current input; only the
+  // async check below writes state.
+  let avail: AvailState;
+  if (!value) {
+    avail = { kind: 'idle' };
+  } else {
     const v = validateUsername(value);
     if (!v.ok) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAvail({ kind: 'invalid', reason: v.reason ?? 'Invalid' });
-      return;
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAvail({ kind: 'checking' });
-    debounceRef.current = setTimeout(async () => {
-      const res = await checkUsernameAvailable(value);
-      setAvail(
-        res.available
+      avail = { kind: 'invalid', reason: v.reason ?? 'Invalid' };
+    } else if (checked?.value === value) {
+      avail =
+        checked.result === 'available'
           ? { kind: 'available' }
-          : { kind: 'taken', reason: res.reason ?? 'Username taken' },
-      );
+          : { kind: 'taken', reason: checked.reason ?? 'Username taken' };
+    } else {
+      avail = { kind: 'checking' };
+    }
+  }
+
+  // Debounced live validation + availability.
+  useEffect(() => {
+    if (!value) return;
+    const v = validateUsername(value);
+    if (!v.ok) return;
+    const t = setTimeout(async () => {
+      const res = await checkUsernameAvailable(value);
+      setChecked({
+        value,
+        result: res.available ? 'available' : 'taken',
+        reason: res.reason,
+      });
     }, 350);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    return () => clearTimeout(t);
   }, [value]);
 
   const dismiss = () => {

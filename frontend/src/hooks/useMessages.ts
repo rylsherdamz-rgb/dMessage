@@ -29,10 +29,6 @@ export function messagesQueryKey(contractId: string, address?: string | null, pe
   return ['messages-thread', contractId, address ?? null, peerAddress ?? null] as const;
 }
 
-function _mkQueryKey(address?: string | null, peerAddress?: string) {
-  return messagesQueryKey(CONTRACT_IDS.messages, address, peerAddress);
-}
-
 async function fetchInbox(
   inboxOwner: string,
   source: string,

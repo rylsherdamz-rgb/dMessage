@@ -62,14 +62,14 @@ export default function ConversationPage() {
     return fuse.search(searchQuery.trim());
   }, [searchQuery, fuse]);
 
-  const searchMatches = searchResults ?? [];
-  const matchedIndices = useMemo(() => searchMatches.map((r) => r.item ? messages?.indexOf(r.item) ?? -1 : -1).filter((i) => i >= 0), [searchMatches, messages]);
+  const matchedIndices = useMemo(() => (searchResults ?? []).map((r) => r.item ? messages?.indexOf(r.item) ?? -1 : -1).filter((i) => i >= 0), [searchResults, messages]);
   const displayMessages = useMemo(() => {
     if (searchResults && searchQuery.trim()) return searchResults.map((r) => r.item);
     return messages ?? [];
   }, [searchResults, searchQuery, messages]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual's API returns functions that cannot be memoized safely
   const virtualizer = useVirtualizer({
     count: displayMessages.length,
     getScrollElement: () => scrollRef.current,
@@ -122,7 +122,7 @@ export default function ConversationPage() {
       .catch((confirmationError) => {
         console.error('[Conversation] message confirmation failed:', confirmationError);
       });
-  }, [CONTRACT_IDS.messages, address, peerAddress, signTransaction, signAuthEntry, queryClient]);
+  }, [address, peerAddress, signTransaction, signAuthEntry, queryClient]);
 
   // When the thread is open, optimistically mark all messages as read locally.
   // No contract write — no wallet popup, no gas fee.
@@ -136,7 +136,7 @@ export default function ConversationPage() {
       messagesQueryKey(CONTRACT_IDS.messages, address, peerAddress),
       (prev) => prev?.map((m) => (m.sender === peerAddress ? { ...m, read: true } : m)),
     );
-  }, [messages, CONTRACT_IDS.messages, address, peerAddress, queryClient]);
+  }, [messages, address, peerAddress, queryClient]);
 
   const attachFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -382,6 +382,7 @@ export default function ConversationPage() {
           {attachedFile && (
             <div className="mb-2 flex items-center gap-2 border-2 border-[var(--border)] bg-[var(--bg-inset)] p-2 sm:gap-3">
               {previewUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- local blob preview
                 <img
                   src={previewUrl}
                   alt=""

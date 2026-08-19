@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, CheckCheck, File, Download, Loader2, ImageIcon } from 'lucide-react';
+import { Check, CheckCheck, File, Download, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { useProfile } from '@/hooks/useProfile';
@@ -105,6 +105,7 @@ export function MessageBubble({
                   onClick={(e) => e.stopPropagation()}
                   className="group relative block overflow-hidden border border-[var(--border)]"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- IPFS-hosted remote image */}
                   <img
                     src={getIpfsUrl(payload.f)}
                     alt={payload.n ?? 'Image'}

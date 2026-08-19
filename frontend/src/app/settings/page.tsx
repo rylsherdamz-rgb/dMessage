@@ -30,7 +30,6 @@ import { registerUser, validateUsername } from '@/lib/registry';
 import { waitForSponsoredTransaction } from '@/lib/gasless';
 import { useTheme } from '@/lib/theme';
 import { NetworkBadge } from '@/components/ui/NetworkBadge';
-import { getStoredNetwork, setStoredNetwork } from '@/lib/network';
 
 export default function SettingsPage() {
   const { isConnected, address, disconnect, signTransaction, signAuthEntry } = useWallet();
