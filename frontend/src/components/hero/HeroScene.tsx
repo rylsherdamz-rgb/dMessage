@@ -38,11 +38,11 @@ export function HeroScene() {
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 py-5 sm:px-10"
+        className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5 md:px-10"
       >
-        <Link href="/" className="flex items-center gap-3">
-          <div className="h-5 w-5 animate-pulse-glow bg-[var(--accent)]" />
-          <span className="font-mono text-lg font-black tracking-tight text-white">dMessage</span>
+        <Link href="/" className="flex items-center gap-2 sm:gap-3">
+          <div className="h-4 w-4 animate-pulse-glow bg-[var(--accent)] sm:h-5 sm:w-5" />
+          <span className="font-mono text-base font-black tracking-tight text-white sm:text-lg">dMessage</span>
         </Link>
 
         <div className="hidden items-center gap-7 md:flex">
@@ -66,8 +66,8 @@ export function HeroScene() {
       </motion.nav>
 
       {/* Hero content */}
-      <div className="relative z-10 flex flex-col items-center gap-7 px-6">
-        {/* Animated Remotion logo mark */}
+      <div className="relative z-10 flex flex-col items-center gap-5 px-5 sm:gap-7 sm:px-6">
+        {/* Animated logo mark */}
         <motion.div
           initial={{ opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -85,30 +85,30 @@ export function HeroScene() {
           <h1 className="font-mono text-[var(--text-hero)] font-black leading-none tracking-tighter text-white">
             dMessage
           </h1>
-          <div className="mx-auto mt-4 h-[3px] w-24 bg-[var(--accent)]" />
+          <div className="mx-auto mt-3 h-[3px] w-16 bg-[var(--accent)] sm:mt-4 sm:w-24" />
         </motion.div>
 
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="max-w-md text-center font-mono text-sm uppercase leading-relaxed tracking-[0.2em] text-[var(--text-muted)]"
+          className="max-w-xs text-center font-mono text-xs uppercase leading-relaxed tracking-[0.15em] text-[var(--text-muted)] sm:max-w-md sm:text-sm sm:tracking-[0.2em]"
         >
           Censorship-resistant messaging
           <br />
           you actually own
         </motion.p>
 
-        {/* Primary path: start chatting now */}
+        {/* Primary CTA buttons — full size on all screens */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex flex-col items-center gap-4 sm:flex-row"
+          className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4"
         >
           <Link
             href="/dashboard"
-            className="brutal flex items-center gap-2 bg-[var(--accent)] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-black transition-colors hover:bg-[var(--accent-dim)]"
+            className="brutal flex items-center gap-2 bg-[var(--accent)] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-black transition-colors hover:bg-[var(--accent-dim)] sm:px-8 sm:py-4 sm:text-sm"
           >
             Start Chatting
             <ArrowRight className="h-4 w-4" strokeWidth={2.5} aria-hidden />
@@ -124,7 +124,7 @@ export function HeroScene() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.6 }}
-        className="absolute bottom-12 left-1/2 z-10 -translate-x-1/2"
+        className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 sm:bottom-12"
       >
         <div className="group flex flex-col items-center gap-2">
           <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent)]">

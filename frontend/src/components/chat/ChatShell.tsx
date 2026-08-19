@@ -1,7 +1,7 @@
 'use client';
 
-import { type ReactNode, useState } from 'react';
-import { Menu } from 'lucide-react';
+import { type ReactNode, useState, useEffect } from 'react';
+import { Menu, ArrowLeft } from 'lucide-react';
 import { Nav } from '@/components/layout/Nav';
 import { ConversationSidebar } from './ConversationSidebar';
 
@@ -14,47 +14,75 @@ export function ChatShell({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Close sidebar on route change (when activeId changes)
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [activeId]);
+
+  // Close sidebar on escape key
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [sidebarOpen]);
+
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [sidebarOpen]);
+
   return (
     <div className="flex h-screen flex-col">
       <Nav />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
         {/* Mobile sidebar overlay */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-30 bg-black/50 md:hidden"
+            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm transition-opacity md:hidden"
             onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
           />
         )}
+
+        {/* Sidebar */}
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-80 -translate-x-full border-r-2 border-[var(--border-strong)] bg-[var(--bg-surface)] transition-transform duration-200 md:relative md:z-auto md:flex md:w-80 md:translate-x-0 lg:w-96 ${
-            sidebarOpen ? 'translate-x-0' : ''
-          }`}
+          className={`
+            fixed inset-y-0 left-0 z-40 w-[85vw] max-w-[320px] border-r-2 border-[var(--border-strong)] bg-[var(--bg-surface)] transition-transform duration-200 ease-out
+            md:relative md:z-auto md:w-80 md:max-w-none md:translate-x-0
+            lg:w-96
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}
         >
           <div className="flex h-full flex-col overflow-hidden pt-14 md:pt-0">
             <ConversationSidebar activeId={activeId} />
           </div>
         </aside>
+
+        {/* Main content */}
         <main id="main-content" className="flex min-w-0 flex-1 flex-col">
-          {/* Mobile hamburger + back */}
-          <div className="flex items-center border-b-2 border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-2 md:hidden">
-            {activeId ? (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                aria-label="Open conversations"
-                className="flex h-9 w-9 items-center justify-center text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
-              >
+          {/* Mobile header bar */}
+          <div className="flex items-center gap-2 border-b-2 border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-2.5 md:hidden">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open conversations"
+              className="flex h-10 w-10 items-center justify-center rounded-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--accent)] active:scale-95"
+            >
+              {activeId ? (
+                <ArrowLeft className="h-5 w-5" strokeWidth={2} />
+              ) : (
                 <Menu className="h-5 w-5" strokeWidth={2} />
-              </button>
-            ) : (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                aria-label="Open conversations"
-                className="flex h-9 w-9 items-center justify-center text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
-              >
-                <Menu className="h-5 w-5" strokeWidth={2} />
-              </button>
-            )}
-            <h1 className="ml-2 font-mono text-sm font-black tracking-tight text-[var(--text)]">
+              )}
+            </button>
+            <h1 className="font-mono text-sm font-black tracking-tight text-[var(--text)]">
               dMessage
             </h1>
           </div>

@@ -66,21 +66,21 @@ export function MessageBubble({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.15, delay: index * 0.02 }}
-      className={`flex max-w-[80%] items-end gap-2 ${
+      className={`flex max-w-[88%] items-end gap-1.5 sm:max-w-[75%] sm:gap-2 ${
         isOwn ? 'flex-row-reverse self-end' : 'self-start'
       }`}
       role="log"
       aria-label={`Message from ${displayName}, ${timeStr}${read ? ', read' : ''}`}
     >
-      {!isOwn && <Avatar seed={senderAddress} size={28} className="mb-5" />}
+      {!isOwn && <Avatar seed={senderAddress} size={24} className="mb-5 sm:h-7 sm:w-7" />}
       <div className="min-w-0">
         {!isOwn && (
-          <p className="mb-1.5 ml-1 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+          <p className="mb-1 ml-1 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
             {displayName}
           </p>
         )}
         <div
-          className={`border-2 px-4 py-2.5 ${
+          className={`border-2 px-3 py-2 sm:px-4 sm:py-2.5 ${
             isOwn
               ? 'border-[var(--accent)] bg-black text-[var(--accent)]'
               : 'border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text)]'
@@ -90,10 +90,10 @@ export function MessageBubble({
             <Loader2 className="h-4 w-4 animate-spin text-[var(--text-faint)]" strokeWidth={2} />
           )}
           {payloadError && (
-            <p className="font-mono text-xs italic text-[var(--text-faint)]">Failed to load message</p>
+            <p className="font-mono text-[11px] italic text-[var(--text-faint)] sm:text-xs">Failed to load message</p>
           )}
           {!loadingPayload && displayText && (
-            <p className="font-mono text-sm leading-relaxed break-words">{displayText}</p>
+            <p className="font-mono text-xs leading-relaxed break-words sm:text-sm">{displayText}</p>
           )}
           {!loadingPayload && payload?.f && (
             <div className={`${displayText ? 'mt-2' : ''}`}>
@@ -108,24 +108,24 @@ export function MessageBubble({
                   <img
                     src={getIpfsUrl(payload.f)}
                     alt={payload.n ?? 'Image'}
-                    className="max-h-64 w-full object-cover transition-opacity group-hover:opacity-90"
+                    className="max-h-48 w-full object-cover transition-opacity group-hover:opacity-90 sm:max-h-64"
                     loading="lazy"
                   />
-                  <div className="absolute bottom-1 right-1 flex items-center gap-1 rounded bg-black/60 px-2 py-0.5 text-[10px] text-white">
+                  <div className="absolute bottom-1 right-1 flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-white sm:text-[10px]">
                     <Download className="h-3 w-3" strokeWidth={2} />
-                    {payload.n}
+                    <span className="hidden sm:inline">{payload.n}</span>
                   </div>
                 </a>
               ) : (
-                <div className="flex items-center gap-3">
-                  <File className="h-8 w-8 shrink-0" strokeWidth={1.5} />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <File className="h-6 w-6 shrink-0 sm:h-8 sm:w-8" strokeWidth={1.5} />
                   <div className="min-w-0">
-                    <p className="truncate font-mono text-sm font-bold">{payload.n ?? payload.f.slice(0, 12)}</p>
+                    <p className="truncate font-mono text-xs font-bold sm:text-sm">{payload.n ?? payload.f.slice(0, 12)}</p>
                     <a
                       href={getIpfsUrl(payload.f)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider underline underline-offset-2"
+                      className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider underline underline-offset-2 sm:mt-1"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Download className="h-3 w-3" strokeWidth={2} />

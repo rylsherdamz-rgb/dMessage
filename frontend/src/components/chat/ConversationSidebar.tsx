@@ -76,14 +76,15 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
 
   return (
     <div className="flex h-full flex-col bg-[var(--bg-surface)]">
-      <div className="flex items-center justify-between border-b-2 border-[var(--border-strong)] px-4 py-4">
-        <div className="flex items-center gap-2">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b-2 border-[var(--border-strong)] px-4 py-3 sm:px-5 sm:py-4">
+        <div className="flex items-center gap-2.5">
           <span className="status-dot bg-[var(--accent)] text-[var(--accent)]" />
           <h2 className="font-mono text-xs font-black uppercase tracking-[0.2em] text-[var(--text)]">
             Messages
           </h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
           {active.length > 0 && (
             <button
               onClick={() => hideAll(active.map((c) => c.peerAddress))}
@@ -96,13 +97,14 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
           <button
             onClick={() => setShowNew((s) => !s)}
             aria-label="New conversation"
-            className="brutal flex h-8 w-8 items-center justify-center bg-[var(--accent)] text-black"
+            className="brutal flex h-9 w-9 items-center justify-center bg-[var(--accent)] text-black sm:h-8 sm:w-8"
           >
             {showNew ? <X className="h-4 w-4" strokeWidth={2.5} /> : <Plus className="h-4 w-4" strokeWidth={2.5} />}
           </button>
         </div>
       </div>
 
+      {/* New conversation form */}
       {showNew && (
         <div className="border-b-2 border-[var(--border)]">
           <form
@@ -110,7 +112,7 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
               e.preventDefault();
               handleCreate();
             }}
-            className="flex gap-2 p-3"
+            className="flex gap-2 p-3 sm:p-4"
           >
             <input
               autoFocus
@@ -120,40 +122,42 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
                 if (createError) setCreateError(null);
               }}
               placeholder="G… address"
-              className="brutal-input min-w-0 flex-1 bg-[var(--bg)] px-3 py-2 font-mono text-xs text-[var(--text)]"
+              className="brutal-input min-w-0 flex-1 bg-[var(--bg)] px-3 py-2.5 font-mono text-xs text-[var(--text)]"
             />
             <button
               type="submit"
               disabled={creating || !newPeer.trim()}
-              className="brutal-accent flex items-center bg-black px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--accent)] disabled:opacity-30"
+              className="brutal-accent flex items-center bg-black px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--accent)] disabled:opacity-30"
             >
               {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Start'}
             </button>
           </form>
           {createError && (
-            <p className="border-t-2 border-[var(--danger)] px-3 pb-2 pt-1.5 font-mono text-[10px] text-[var(--danger)]">
+            <p className="border-t-2 border-[var(--danger)] px-3 pb-2.5 pt-2 font-mono text-[10px] text-[var(--danger)] sm:px-4">
               {createError}
             </p>
           )}
         </div>
       )}
 
+      {/* Search/filter bar */}
       {active.length > 0 && (
         <div className="relative border-b-2 border-[var(--border)]">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-faint)]" strokeWidth={2} />
+          <Search className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-faint)] sm:left-4" strokeWidth={2} />
           <input
             ref={searchRef}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Filter conversations…  (⌘K)"
-            className="w-full bg-[var(--bg)] py-2.5 pl-9 pr-3 font-mono text-xs text-[var(--text)] outline-none placeholder-[var(--text-faint)]"
+            className="w-full bg-[var(--bg)] py-3 pl-9 pr-3 font-mono text-xs text-[var(--text)] outline-none placeholder-[var(--text-faint)] sm:pl-10 sm:pr-4"
           />
         </div>
       )}
 
+      {/* Conversation list */}
       <div className="flex-1 overflow-y-auto">
         {isLoading && (
-          <div className="space-y-1 px-4 py-3">
+          <div className="space-y-1 px-4 py-4 sm:px-5">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3 py-3">
                 <div className="skeleton h-10 w-10 shrink-0 rounded-none" />
@@ -167,7 +171,7 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
         )}
 
         {!isLoading && filtered.length === 0 && (
-          <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
             {searchQuery ? (
               <>
                 <Search className="mb-3 h-8 w-8 text-[var(--text-faint)]" strokeWidth={1.5} />
@@ -191,7 +195,7 @@ export function ConversationSidebar({ activeId }: { activeId?: string }) {
           return (
             <div
               key={conv.conversationId}
-              className={`group flex items-center gap-2 border-l-2 px-4 py-3 transition-colors ${
+              className={`group flex items-center gap-2 border-l-[3px] px-3 py-3.5 transition-colors sm:px-4 sm:py-4 ${
                 isActive
                   ? 'border-[var(--accent)] bg-[var(--bg-elevated)]'
                   : 'border-transparent hover:bg-[var(--bg-elevated)]'
@@ -229,7 +233,7 @@ function PeerName({ address, lastUpdated }: { address: string; lastUpdated: numb
         <p className="truncate font-mono text-sm font-bold tracking-tight text-[var(--text)]">
           {profile?.username ? `@${profile.username}` : `${address.slice(0, 6)}…${address.slice(-4)}`}
         </p>
-        <p className="truncate font-mono text-[10px] text-[var(--text-muted)]">
+        <p className="mt-0.5 truncate font-mono text-[10px] text-[var(--text-muted)]">
           {relativeTime(lastUpdated)}
         </p>
       </div>

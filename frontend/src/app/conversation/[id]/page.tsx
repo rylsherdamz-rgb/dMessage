@@ -202,18 +202,19 @@ export default function ConversationPage() {
   return (
     <ChatShell activeId={peerAddress}>
       <div className="flex h-full flex-col">
-        <header className="flex items-center gap-2 border-b-2 border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
+        {/* Conversation header */}
+        <header className="flex items-center gap-2 border-b-2 border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-2.5 sm:gap-3 sm:px-5 sm:py-3">
           <button
             onClick={() => router.push('/dashboard')}
             aria-label="Back"
-            className="flex h-9 w-9 items-center justify-center text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--accent)] active:scale-95 sm:h-9 sm:w-9"
           >
             <ArrowLeft className="h-5 w-5" strokeWidth={2} />
           </button>
-          <Avatar seed={peerAddress} size={40} online />
+          <Avatar seed={peerAddress} size={36} online className="shrink-0 sm:h-10 sm:w-10" />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="truncate font-mono text-sm font-black tracking-tight text-[var(--text)]">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <p className="truncate font-mono text-xs font-black tracking-tight text-[var(--text)] sm:text-sm">
                 {displayName}
               </p>
               <button
@@ -237,9 +238,9 @@ export default function ConversationPage() {
                 typing…
               </p>
             ) : (
-              <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">
+              <p className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">
                 <ShieldCheck className="h-3 w-3" strokeWidth={2} aria-hidden />
-                End-to-end encrypted
+                <span className="hidden sm:inline">End-to-end</span> encrypted
               </p>
             )}
           </div>
@@ -247,7 +248,7 @@ export default function ConversationPage() {
             onClick={() => { setShowSearch((s) => !s); setSearchQuery(''); }}
             aria-label="Search messages"
             title="Search messages"
-            className="flex h-9 w-9 shrink-0 items-center justify-center text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--accent)] active:scale-95 sm:h-9 sm:w-9"
           >
             <Search className="h-4 w-4" strokeWidth={2} />
           </button>
@@ -258,14 +259,15 @@ export default function ConversationPage() {
             }}
             aria-label="Close conversation"
             title="Close conversation"
-            className="flex h-9 w-9 shrink-0 items-center justify-center text-[var(--text-muted)] transition-colors hover:text-[var(--danger)]"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--danger)] active:scale-95 sm:h-9 sm:w-9"
           >
             <X className="h-5 w-5" strokeWidth={2} />
           </button>
         </header>
 
+        {/* Message search bar */}
         {showSearch && (
-          <div className="flex items-center gap-2 border-b-2 border-[var(--border)] bg-[var(--bg)] px-3 py-2">
+          <div className="flex items-center gap-2 border-b-2 border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 sm:px-4">
             <Search className="h-4 w-4 shrink-0 text-[var(--text-faint)]" strokeWidth={2} />
             <input
               ref={searchRef}
@@ -279,7 +281,7 @@ export default function ConversationPage() {
                 }
               }}
               placeholder="Search this conversation…"
-              className="min-w-0 flex-1 bg-transparent font-mono text-sm text-[var(--text)] outline-none placeholder-[var(--text-faint)]"
+              className="min-w-0 flex-1 bg-transparent font-mono text-xs text-[var(--text)] outline-none placeholder-[var(--text-faint)] sm:text-sm"
               autoFocus
             />
             {searchQuery.trim() && (
@@ -293,13 +295,13 @@ export default function ConversationPage() {
               <>
                 <button
                   onClick={() => setSearchMatchIdx((i) => i > 0 ? i - 1 : matchedIndices.length - 1)}
-                  className="text-[var(--text-muted)] hover:text-[var(--accent)]"
+                  className="flex h-8 w-8 items-center justify-center text-[var(--text-muted)] hover:text-[var(--accent)]"
                 >
                   <ChevronUp className="h-4 w-4" strokeWidth={2} />
                 </button>
                 <button
                   onClick={() => setSearchMatchIdx((i) => i < matchedIndices.length - 1 ? i + 1 : 0)}
-                  className="text-[var(--text-muted)] hover:text-[var(--accent)]"
+                  className="flex h-8 w-8 items-center justify-center text-[var(--text-muted)] hover:text-[var(--accent)]"
                 >
                   <ChevronDown className="h-4 w-4" strokeWidth={2} />
                 </button>
@@ -307,9 +309,11 @@ export default function ConversationPage() {
             )}
           </div>
         )}
+
+        {/* Messages area */}
         <div
           ref={scrollRef}
-          className="flex flex-1 flex-col gap-2 overflow-y-auto bg-grid p-2 sm:gap-3 sm:p-6"
+          className="flex flex-1 flex-col gap-1.5 overflow-y-auto bg-grid px-3 py-3 sm:gap-3 sm:px-6 sm:py-6"
           role="log"
           aria-live="polite"
           aria-label="Messages"
@@ -320,7 +324,7 @@ export default function ConversationPage() {
             </div>
           )}
           {!isLoading && messages?.length === 0 && (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 sm:px-6">
               <Avatar seed={peerAddress} size={64} />
               <PeerProfile address={peerAddress} />
               <p className="font-mono text-xs text-[var(--text-muted)]">
@@ -366,29 +370,31 @@ export default function ConversationPage() {
           )}
         </div>
 
+        {/* Error banner */}
         {sendError && (
-          <div className="border-t-2 border-[var(--danger)] bg-[var(--bg-surface)] px-4 py-2 font-mono text-xs text-[var(--danger)]">
+          <div className="border-t-2 border-[var(--danger)] bg-[var(--bg-surface)] px-3 py-2 font-mono text-[10px] text-[var(--danger)] sm:px-4 sm:text-xs">
             {sendError}
           </div>
         )}
 
+        {/* Composer area */}
         <div className="border-t-2 border-[var(--border-strong)] bg-[var(--bg-surface)] p-2 sm:p-4">
           {attachedFile && (
-            <div className="mb-2 flex items-center gap-3 border-2 border-[var(--border)] bg-[var(--bg-inset)] p-2">
+            <div className="mb-2 flex items-center gap-2 border-2 border-[var(--border)] bg-[var(--bg-inset)] p-2 sm:gap-3">
               {previewUrl && (
                 <img
                   src={previewUrl}
                   alt=""
-                  className="h-16 w-16 shrink-0 border border-[var(--border)] bg-black object-cover"
+                  className="h-12 w-12 shrink-0 border border-[var(--border)] bg-black object-cover sm:h-16 sm:w-16"
                 />
               )}
-              <span className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--text)]">
+              <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--text)] sm:text-xs">
                 {attachedFile.name} ({(attachedFile.size / 1024).toFixed(1)} KB)
               </span>
               <button
                 type="button"
                 onClick={() => { setAttachedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                className="shrink-0 text-[var(--text-faint)] hover:text-[var(--danger)]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center text-[var(--text-faint)] hover:text-[var(--danger)]"
               >
                 <X className="h-3.5 w-3.5" strokeWidth={2} />
               </button>
@@ -399,9 +405,9 @@ export default function ConversationPage() {
               e.preventDefault();
               handleSend();
             }}
-            className="flex gap-3"
+            className="flex gap-2 sm:gap-3"
           >
-            <div className="relative flex-1">
+            <div className="relative min-w-0 flex-1">
               <textarea
                 ref={textareaRef}
                 autoFocus
@@ -416,10 +422,10 @@ export default function ConversationPage() {
                     handleSend();
                   }
                 }}
-                placeholder="Type a message… (Shift+Enter for new line)"
+                placeholder="Type a message…"
                 disabled={sending}
                 rows={1}
-                className="brutal-input min-w-0 w-full resize-none bg-[var(--bg)] px-4 py-3 font-mono text-sm text-[var(--text)] placeholder-[var(--text-muted)] disabled:opacity-40"
+                className="brutal-input min-w-0 w-full resize-none bg-[var(--bg)] px-3 py-2.5 font-mono text-xs text-[var(--text)] placeholder-[var(--text-muted)] disabled:opacity-40 sm:px-4 sm:py-3 sm:text-sm"
               />
             </div>
             <button
@@ -427,7 +433,7 @@ export default function ConversationPage() {
               onClick={() => fileInputRef.current?.click()}
               disabled={sending}
               aria-label="Attach file"
-              className="brutal flex items-center bg-[var(--bg)] px-3 py-3 font-mono text-xs text-[var(--text-muted)] disabled:opacity-30"
+              className="brutal flex h-10 w-10 shrink-0 items-center justify-center bg-[var(--bg)] text-[var(--text-muted)] disabled:opacity-30 sm:h-auto sm:w-auto sm:px-3 sm:py-3"
             >
               <Paperclip className="h-4 w-4" strokeWidth={2} />
             </button>
@@ -442,10 +448,16 @@ export default function ConversationPage() {
               type="submit"
               disabled={sending || (!input.trim() && !attachedFile)}
               aria-label="Send"
-              className="brutal-accent flex items-center gap-2 bg-black px-5 py-3 font-mono text-xs font-bold uppercase tracking-widest text-[var(--accent)] disabled:opacity-30"
+              className="brutal-accent flex h-10 w-10 shrink-0 items-center justify-center gap-2 bg-black text-[var(--accent)] disabled:opacity-30 sm:h-auto sm:w-auto sm:px-5 sm:py-3"
             >
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} /> : <Send className="h-4 w-4" strokeWidth={2} aria-hidden />}
-              <span className="hidden sm:inline">{uploading ? 'Uploading…' : sending ? '…' : 'Send'}</span>
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+              ) : (
+                <Send className="h-4 w-4" strokeWidth={2} aria-hidden />
+              )}
+              <span className="hidden font-mono text-xs font-bold uppercase tracking-widest sm:inline">
+                {uploading ? 'Uploading…' : sending ? '…' : 'Send'}
+              </span>
             </button>
           </form>
         </div>

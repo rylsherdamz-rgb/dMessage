@@ -16,34 +16,44 @@ export function Nav() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-0 z-30 flex items-center justify-between border-b-2 border-[var(--border-strong)] bg-[var(--bg)]/90 px-3 py-3 backdrop-blur-md sm:px-8 sm:py-4">
-      <Link href="/" className="flex items-center gap-2 sm:gap-3">
+    <nav className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b-2 border-[var(--border-strong)] bg-[var(--bg)]/90 px-2 py-2.5 backdrop-blur-md sm:gap-4 sm:px-6 sm:py-3 md:px-8">
+      {/* Logo */}
+      <Link href="/" className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
         <div className="h-4 w-4 bg-[var(--accent)] sm:h-5 sm:w-5" />
-        <span className="font-mono text-sm font-black tracking-tight sm:text-lg">dMessage</span>
+        <span className="font-mono text-xs font-black tracking-tight sm:text-base md:text-lg">dMessage</span>
       </Link>
 
-      <div className="flex items-center gap-1 sm:gap-5">
-        <div className="flex items-center gap-1 sm:gap-2">
+      {/* Right section */}
+      <div className="flex items-center gap-1 sm:gap-3 md:gap-4">
+        {/* Nav links */}
+        <div className="flex items-center">
           {LINKS.map(({ label, href, Icon }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-1 rounded-sm border-2 px-2 py-2 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors sm:gap-2 sm:px-3 sm:text-xs ${
+                title={label}
+                className={`flex items-center gap-1 rounded-sm border-2 px-1.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors sm:gap-2 sm:px-2.5 sm:py-2 sm:text-xs ${
                   active
                     ? 'border-[var(--accent)] text-[var(--accent)]'
                     : 'border-transparent text-[var(--text-muted)] hover:text-[var(--accent)]'
                 }`}
               >
-                <Icon className="h-4 w-4 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
-                <span className="hidden sm:inline">{label}</span>
+                <Icon className="h-4 w-4" strokeWidth={2} aria-hidden />
+                <span className="hidden md:inline">{label}</span>
               </Link>
             );
           })}
         </div>
-        <NetworkBadge />
-        <WalletConnector />
+
+        {/* Network badge - hidden on small mobile, shown from sm up */}
+        <div className="hidden sm:block">
+          <NetworkBadge />
+        </div>
+
+        {/* Wallet button */}
+        <WalletConnector compact />
       </div>
     </nav>
   );
