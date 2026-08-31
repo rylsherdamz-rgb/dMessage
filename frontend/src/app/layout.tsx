@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
+
 import { Providers } from "@/lib/providers";
 import { ThemeProvider } from "@/lib/theme";
 import { ClientWalletProvider } from "@/components/wallet/ClientWalletProvider";
@@ -36,7 +37,13 @@ export const metadata: Metadata = {
     type: "website",
   },
   manifest: "/manifest.json",
-  icons: [{ rel: "icon", url: "/icon.svg", type: "image/svg+xml" }],
+  icons: [
+    {
+      rel: "icon",
+      url: "/icon.svg",
+      type: "image/svg+xml",
+    },
+  ],
 };
 
 export const viewport: Viewport = {
@@ -57,7 +64,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="relative min-h-full flex flex-col font-sans bg-bg text-foreground">
-
+        
         {/* Google AdSense */}
         <Script
           async
@@ -66,6 +73,7 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
 
+        {/* Skip to content */}
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-[var(--accent)] focus:px-4 focus:py-2 focus:text-black focus:outline-none"
