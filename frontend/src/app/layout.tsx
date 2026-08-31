@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
@@ -19,10 +20,19 @@ export const metadata: Metadata = {
   title: "dMessage — Decentralized Messaging on Stellar",
   description:
     "Censorship-resistant, end-to-end encrypted messaging built on Stellar Soroban. Own your conversations.",
-  keywords: ["decentralized", "messaging", "stellar", "soroban", "e2ee", "web3", "crypto"],
+  keywords: [
+    "decentralized",
+    "messaging",
+    "stellar",
+    "soroban",
+    "e2ee",
+    "web3",
+    "crypto",
+  ],
   openGraph: {
     title: "dMessage — Decentralized Messaging on Stellar",
-    description: "Censorship-resistant, end-to-end encrypted messaging built on Stellar Soroban.",
+    description:
+      "Censorship-resistant, end-to-end encrypted messaging built on Stellar Soroban.",
     type: "website",
   },
   manifest: "/manifest.json",
@@ -41,21 +51,49 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full antialiased ${geistMono.variable}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`h-full antialiased ${geistMono.variable}`}
+      suppressHydrationWarning
+    >
       <body className="relative min-h-full flex flex-col font-sans bg-bg text-foreground">
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-[var(--accent)] focus:px-4 focus:py-2 focus:text-black focus:outline-none">
+
+        {/* Google AdSense */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9036167200642924"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-[var(--accent)] focus:px-4 focus:py-2 focus:text-black focus:outline-none"
+        >
           Skip to content
         </a>
-        {/* Ambient background layers (fixed, behind everything) */}
-        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+
+        {/* Ambient background layers */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+        >
           <div className="absolute inset-0 bg-dots opacity-[0.35]" />
+
           <div
             className="absolute -top-40 left-1/2 h-[42rem] w-[42rem] -translate-x-1/2 rounded-full blur-[140px]"
-            style={{ background: "radial-gradient(circle, rgb(var(--accent-rgb) / 0.04), transparent 70%)" }}
+            style={{
+              background:
+                "radial-gradient(circle, rgb(var(--accent-rgb) / 0.04), transparent 70%)",
+            }}
           />
+
           <div
             className="absolute bottom-[-12rem] right-[-8rem] h-[34rem] w-[34rem] rounded-full blur-[150px]"
-            style={{ background: "radial-gradient(circle, rgb(var(--violet-rgb) / 0.03), transparent 70%)" }}
+            style={{
+              background:
+                "radial-gradient(circle, rgb(var(--violet-rgb) / 0.03), transparent 70%)",
+            }}
           />
         </div>
 
@@ -64,11 +102,14 @@ export default function RootLayout({
             <ClientWalletProvider>
               <UnreadTitle />
               <RegisterSW />
+
               {children}
+
               <UsernamePrompt />
             </ClientWalletProvider>
           </Providers>
         </ThemeProvider>
+
         <Analytics />
       </body>
     </html>
