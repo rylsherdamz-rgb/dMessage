@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   CircleUserRound,
   RefreshCw,
-  Network,
   Sun,
   Moon,
 } from 'lucide-react';
@@ -29,7 +28,6 @@ import { CONTRACT_IDS } from '@/lib/stellar';
 import { registerUser, validateUsername } from '@/lib/registry';
 import { waitForSponsoredTransaction } from '@/lib/gasless';
 import { useTheme } from '@/lib/theme';
-import { NetworkBadge } from '@/components/ui/NetworkBadge';
 
 export default function SettingsPage() {
   const { isConnected, address, disconnect, signTransaction, signAuthEntry } = useWallet();
@@ -236,7 +234,7 @@ export default function SettingsPage() {
           {/* Account */}
           <section className="brutal-static bg-[var(--bg-surface)] p-6">
             <div className="mb-5 flex items-center gap-2 text-[var(--violet)]">
-              <Network className="h-4 w-4" strokeWidth={2} aria-hidden />
+              <KeyRound className="h-4 w-4" strokeWidth={2} aria-hidden />
               <h2 className="font-mono text-xs uppercase tracking-[0.15em]">Account</h2>
             </div>
 
@@ -269,23 +267,6 @@ export default function SettingsPage() {
                   <QrCode data={address} size={160} />
                 </div>
               )}
-
-              <div>
-                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">
-                  Network
-                </span>
-                <div className="mt-1.5 flex items-center justify-between">
-                  <p className="flex items-center gap-2 font-mono text-sm text-[var(--text)]">
-                    <span className="status-dot bg-[var(--accent)] text-[var(--accent)]" />
-                    <NetworkBadge />
-                  </p>
-                </div>
-                <p className="mt-2 font-mono text-[11px] leading-relaxed text-[var(--text-faint)]">
-                  Click to switch between Testnet and Mainnet. Page will reload.
-                  Your profile, conversations, and messages are tied to the network
-                  — you&apos;ll need to register again when switching.
-                </p>
-              </div>
 
               <button
                 onClick={() => disconnect()}

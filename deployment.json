@@ -1,29 +1,29 @@
 {
-  "network": "mainnet",
+  "network": "testnet",
   "deployed_at": "2026-07-23T21:06:30Z",
   "git_commit": "b288662",
-  "git_note": "Deployed gasless contracts to Stellar mainnet with runtime network toggle.",
-  "feature": "Mainnet deployment — gasless contracts live on mainnet, runtime toggle in NetworkBadge to switch between testnet/mainnet.",
+  "git_note": "Deployed gasless contracts to Stellar testnet.",
+  "feature": "Testnet deployment — gasless contracts live on testnet.",
   "deployer": "GCJJ7WCTRWLR7YLOWZH6VGCYKZ62HG2N7US7AUQPT762GDN7HFA4Y7Q5",
   "contracts": {
     "user_registry": {
-      "id": "CBXX465FRKWQMWPPX3YDEBHPHC2K2L55VWLCPZCRRZB77ZVDABFC33YY",
+      "id": "CDHJHY3LQWJM3PPKGFA6QRDUK2JQU5DQEBFKL42I3UEZNNM6IRFF76DJ",
       "wasm_sha256": "053d3a283dc2fdd605f53420e1f169adc0036b8edbcab16ef38139637ccc5627",
       "src": "contracts/gasless/user_registry_gasless/src/lib.rs",
-      "note": "Mainnet — M-2 pubkey validation relaxed to non-empty + <=128 bytes to accept Web Crypto ECDH P-256 SPKI keys (~91 bytes)."
+      "note": "Testnet — pubkey validation relaxed to non-empty + <=128 bytes to accept Web Crypto ECDH P-256 SPKI keys (~91 bytes)."
     },
     "social_graph": {
-      "id": "CBUC7OBYGSMRIHPARU4B77M4LSRPY5X7LSGOGYO3HZXH5RFAPP752CY5",
+      "id": "CC3SRPHPKC4WIEJUSQY5KKUSHCBO2Y77VDXIDRKX6XVZLHKTIOQEPULK",
       "wasm_sha256": "435836ec67d6ae80557ff606ee80f6178fbd30a3cc6fc79956b46c486d56ad6a",
       "src": "contracts/gasless/social_graph_gasless/src/lib.rs",
       "deploy_tx": ""
     },
     "messages": {
-      "id": "CB4YOOUV3MLKN6AMRFETCYAD2HRHFUI45IUUCE3KXAJTZZJYBMOG76WX",
+      "id": "CB6A3AMUSDIH7KKZRQ4Y2MT6PSBFQPJND5T5USLQJGTQAPTQ4IIX3QEE",
       "wasm_sha256": "9bdbc9f47cdc08ce50621a77f314f2ea9cd1925856c452c65f473fa67ae59a07",
       "src": "contracts/gasless/messages_gasless/src/lib.rs",
       "deploy_tx": "",
-      "note": "Mainnet — v6 with mark_all_read / mark_all_read_sponsored"
+      "note": "Testnet — v6 with mark_all_read / mark_all_read_sponsored"
     }
   },
   "deprecated": {

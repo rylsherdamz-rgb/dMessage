@@ -172,7 +172,7 @@ const CONFIRM_TIMEOUT_MS = 60_000;
 /**
  * Waits for an already accepted sponsored transaction without holding the
  * relay request open. Call this in the background to refresh UI state after a
- * mainnet ledger confirms the transaction.
+ * ledger confirms the transaction.
  */
 export async function waitForSponsoredTransaction(hash: string): Promise<void> {
   const server = getSorobanServer();

@@ -1,7 +1,7 @@
 /**
  * Abuse protection for the gasless relayer.
  *
- * The relayer pays real XLM on mainnet, so an open endpoint with no limits is a
+ * The relayer pays real XLM, so an open endpoint with no limits is a
  * direct path to draining the sponsor wallet. This module enforces, per UTC day:
  *
  *  - a per-address cap on total sponsored actions,

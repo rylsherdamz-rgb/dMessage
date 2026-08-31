@@ -26,17 +26,8 @@ export interface AuthEntrySignature {
   publicKey: string;
 }
 
-const STORAGE_KEY = 'dmessage:network';
-
 function getNetwork(): Networks {
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'mainnet') return Networks.PUBLIC;
-    if (stored === 'testnet') return Networks.TESTNET;
-  }
-  return process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet'
-    ? Networks.PUBLIC
-    : Networks.TESTNET;
+  return Networks.TESTNET;
 }
 
 interface WalletContext {

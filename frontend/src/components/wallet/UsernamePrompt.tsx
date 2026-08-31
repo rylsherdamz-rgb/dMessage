@@ -106,7 +106,7 @@ export function UsernamePrompt() {
     try {
       const result = await registerUser(address, value.trim(), signTransaction, signAuthEntry);
       // The relay has accepted the transaction. Confirm and refresh the profile
-      // in the background instead of holding this dialog open for mainnet.
+      // in the background instead of holding this dialog open.
       void waitForSponsoredTransaction(result.hash)
         .then(() => refetch())
         .catch((confirmationError) => {

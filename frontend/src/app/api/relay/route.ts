@@ -30,8 +30,7 @@ import { precheck, recordSpend, usageSnapshot } from '@/lib/relay-guard';
 export const runtime = 'nodejs';
 
 const RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC ?? 'https://soroban-testnet.stellar.org';
-const NETWORK_PASSPHRASE =
-  process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet' ? Networks.PUBLIC : Networks.TESTNET;
+const NETWORK_PASSPHRASE = Networks.TESTNET;
 
 const ALLOWED_CONTRACTS = new Set<string>(
   [CONTRACT_IDS.userRegistry, CONTRACT_IDS.socialGraph, CONTRACT_IDS.messages].filter(Boolean),
@@ -160,9 +159,9 @@ export async function POST(req: Request) {
   // even if the Soroban call ultimately fails, so record the spend + action now.
   recordSpend({ caller: validation.caller, method: validation.method, feeStroops });
 
-  // Acknowledging acceptance immediately keeps the wallet UI responsive on
-  // mainnet. The browser watches this hash in the background and refreshes its
-  // data once the transaction reaches a final status.
+// Acknowledging acceptance immediately keeps the wallet UI responsive.
+// The browser watches this hash in the background and refreshes its
+// data once the transaction reaches a final status.
   return NextResponse.json({ hash: send.hash, status: send.status, sponsor: kp.publicKey() }, {
     status: 200,
   });
