@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   /api/contact  — server-side contact form handler
+   /api/contact  — server-side contact form handler (Resend)
    
-   Currently stores submissions in memory / logs them (no external mailer
-   configured). To wire up a real email service (e.g. Resend, SendGrid,
-   Nodemailer), replace the TODO section below with your preferred SDK call.
+   Required environment variable:
+     RESEND_API_KEY  — your Resend API key
    
-   Environment variables you can add to .env.local:
-     CONTACT_TO_EMAIL  — recipient address (defaults to maintainer placeholder)
-     RESEND_API_KEY    — if using Resend
+   Optional:
+     CONTACT_TO_EMAIL  — recipient address (defaults to maintainer email below)
 ───────────────────────────────────────────────────────────────────────────── */
+
+const CONTACT_EMAIL = process.env.CONTACT_TO_EMAIL ?? 'richiechristiandeguzman11@gmail.com';
 
 interface ContactPayload {
   name: string;
@@ -26,7 +27,6 @@ function sanitise(str: unknown, maxLen: number): string {
 }
 
 function isValidEmail(email: string): boolean {
-  // RFC-5321 practical check — no external library required
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 }
 
@@ -99,28 +99,64 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── TODO: send email ─────────────────────────────────────────────────────
-  // Replace this block with your preferred mailer. Example using Resend:
-  //
-  //   import { Resend } from 'resend';
-  //   const resend = new Resend(process.env.RESEND_API_KEY);
-  //   await resend.emails.send({
-  //     from:    'dMessage Contact <noreply@yourdomain.com>',
-  //     to:      process.env.CONTACT_TO_EMAIL ?? 'richiechristiandeguzman11@gmail.com',
-  //     subject: `[dMessage] ${payload.topic} from ${payload.name}`,
-  //     replyTo: payload.email,
-  //     text:    `Name: ${payload.name}\nEmail: ${payload.email}\nTopic: ${payload.topic}\n\n${payload.message}`,
-  //   });
-  //
-  // Until then, log to stdout so submissions are visible in Vercel logs:
-  console.log('[contact-form]', {
-    name: payload.name,
-    email: payload.email,
-    topic: payload.topic,
-    messageLength: payload.message.length,
-    ip,
-    ts: new Date().toISOString(),
+  // ── Send via Resend ─────────────────────────────────────────────────────
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[contact-form] RESEND_API_KEY is not set');
+    return NextResponse.json(
+      { error: 'Email service is not configured. Please try again later.' },
+      { status: 503 },
+    );
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const { error } = await resend.emails.send({
+    from: 'dMessage Contact <onboarding@resend.dev>',
+    to: CONTACT_EMAIL,
+    replyTo: payload.email,
+    subject: `[dMessage] ${payload.topic} — from ${payload.name}`,
+    html: `
+      <div style="font-family:monospace;max-width:600px;margin:0 auto;padding:24px;background:#0d0d0d;color:#e5e5e5;border:2px solid #333;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+          <div style="width:16px;height:16px;background:#00ff88;flex-shrink:0;"></div>
+          <strong style="font-size:18px;letter-spacing:-0.02em;">dMessage — Contact Form</strong>
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+          <tr>
+            <td style="padding:8px 12px;background:#1a1a1a;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:0.2em;border:1px solid #333;width:120px;">Name</td>
+            <td style="padding:8px 12px;background:#111;font-size:13px;border:1px solid #333;">${payload.name}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 12px;background:#1a1a1a;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:0.2em;border:1px solid #333;">Email</td>
+            <td style="padding:8px 12px;background:#111;font-size:13px;border:1px solid #333;"><a href="mailto:${payload.email}" style="color:#00ff88;">${payload.email}</a></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 12px;background:#1a1a1a;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:0.2em;border:1px solid #333;">Topic</td>
+            <td style="padding:8px 12px;background:#111;font-size:13px;border:1px solid #333;">${payload.topic}</td>
+          </tr>
+        </table>
+
+        <div style="background:#111;border:1px solid #333;padding:16px;">
+          <p style="margin:0 0 8px;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:0.2em;">Message</p>
+          <p style="margin:0;font-size:13px;line-height:1.7;white-space:pre-wrap;">${payload.message}</p>
+        </div>
+
+        <p style="margin-top:24px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.2em;">
+          Sent via dmessage.vercel.app · Reply-To is set to the sender's email
+        </p>
+      </div>
+    `,
+    text: `dMessage Contact Form\n\nName: ${payload.name}\nEmail: ${payload.email}\nTopic: ${payload.topic}\n\n${payload.message}\n\n---\nSent via dmessage.vercel.app`,
   });
+
+  if (error) {
+    console.error('[contact-form] Resend error:', error);
+    return NextResponse.json(
+      { error: 'Failed to send message. Please try again later.' },
+      { status: 502 },
+    );
+  }
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }
