@@ -20,6 +20,13 @@ const LINKS = [
     ],
   },
   {
+    heading: 'Company',
+    items: [
+      { label: 'About Us', href: '/about' },
+      { label: 'Contact Us', href: '/contact' },
+    ],
+  },
+  {
     heading: 'Source',
     items: [
       { label: 'GitHub', href: 'https://github.com/rylsherdamz-rgb/dMessage' },
@@ -32,7 +39,7 @@ export function Footer() {
   return (
     <footer className="relative w-full border-t-2 border-[var(--border-strong)] bg-[var(--bg-inset)]">
       <div className="mx-auto w-full max-w-6xl px-6 py-16">
-        <div className="grid grid-cols-2 gap-10 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-10 md:grid-cols-5">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-3">
