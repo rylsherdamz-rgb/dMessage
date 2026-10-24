@@ -267,7 +267,7 @@ Explorer: [UserRegistry](https://stellar.expert/explorer/public/contract/CBXX465
 ## Getting Started
 
 ### Prerequisites
-- Node.js 20+
+- Node.js 26.12.1+ (or 22.23.4+ / 24.22.1+; older releases are vulnerable to Node2Shell, CVE-2026-111497)
 - Rust 1.75+ (with `wasm32-unknown-unknown` target)
 - Stellar Freighter browser extension (for wallet connection)
 
