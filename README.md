@@ -148,24 +148,37 @@ use (see [Advanced Features](#advanced-features)).
 | Layer | What it does | Cost |
 |---|---|---|
 | Rules (always on) | threats, child-safety patterns, scams, suspicious links, personal-info detection (phone, email, address, Stellar secret key, seed phrase) | 0 MB, instant |
-| ML (default on, off with Data Saver) | [`Xenova/toxic-bert`](https://huggingface.co/Xenova/toxic-bert) via Transformers.js (WebGPU → WASM fallback): toxic, insult, obscene, threat, identity hate | ~110 MB one-time download, cached by the browser |
+| ML text (default on, off with Data Saver) | [`Xenova/toxic-bert`](https://huggingface.co/Xenova/toxic-bert) via Transformers.js (WebGPU → WASM fallback): toxic, insult, obscene, threat, identity hate | ~110 MB one-time download, cached by the browser |
+| ML image/video (default on, off with Data Saver) | [`AdamCodd/vit-base-nsfw-detector`](https://huggingface.co/AdamCodd/vit-base-nsfw-detector): stranger video frames sampled every 3 s, received DM images | ~90 MB, downloaded **only** the first time an image or video needs checking |
 
 Policy:
 - **Incoming** (stranger chat *and* regular DMs): flagged messages are hidden behind "Tap to show". Three severe flags from one stranger → auto-disconnect + local block.
 - **Outgoing**: severe messages are held for rephrasing; personal info or mild toxicity asks "Send anyway?".
+- **Video**: explicit video is force-blurred after 2 consecutive explicit frames ("Show anyway" is still possible for adults); repeated hits count toward the auto-disconnect.
+- **DM images**: received images stay blurred while being checked and remain hidden if flagged.
+- **Settings → Safety & Privacy** (works without a wallet): toggle each model, clear blocked strangers, reset the anonymous identity, delete downloaded models.
 - **Privacy**: the worker only downloads public model weights. It never sends text anywhere, there is no moderation API, and verdicts stay on the device.
 
 ### Configuration (all optional)
 
 ```bash
 NEXT_PUBLIC_MODERATION_MODEL=Xenova/toxic-bert        # any Transformers.js text-classification model
+NEXT_PUBLIC_IMAGE_MODERATION_MODEL=AdamCodd/vit-base-nsfw-detector  # any image-classification model with an nsfw label
 NEXT_PUBLIC_STRANGER_RELAYS=wss://relay.a,wss://relay.b  # custom Nostr relays (default: Trystero's list)
 NEXT_PUBLIC_TURN_URL=turn:turn.example.com:3478         # TURN for users behind strict NATs
 NEXT_PUBLIC_TURN_USERNAME=
 NEXT_PUBLIC_TURN_CREDENTIAL=
 ```
 
-> Testing locally: tabs in the same browser profile share an anonymous identity, so use one normal and one private/incognito window to match with yourself.
+> Testing locally: tabs in the same browser profile share an anonymous identity, so use one normal and one private/incognito window to match with yourself. Set `localStorage['dmessage:debug'] = '1'` to log matchmaking steps to the console.
+
+### Tests
+
+```bash
+cd frontend
+npm run test:unit   # moderation rules + a privacy guard asserting the worker has no upload path (runs in CI)
+npm run test:e2e    # Playwright; spins up a local Nostr relay and matches two real browsers end to end
+```
 
 ## Advanced Features
 

@@ -28,6 +28,7 @@ import { CONTRACT_IDS } from '@/lib/stellar';
 import { registerUser, validateUsername } from '@/lib/registry';
 import { waitForSponsoredTransaction } from '@/lib/gasless';
 import { useTheme } from '@/lib/theme';
+import { SafetySettings } from '@/components/settings/SafetySettings';
 
 export default function SettingsPage() {
   const { isConnected, address, disconnect, signTransaction, signAuthEntry } = useWallet();
@@ -100,6 +101,9 @@ export default function SettingsPage() {
       <div className="flex min-h-screen flex-col">
         <Nav />
         <ConnectGate message="Authenticate to manage your profile" />
+        <div className="mx-auto w-full max-w-3xl px-6 pb-16">
+          <SafetySettings />
+        </div>
       </div>
     );
   }
@@ -114,7 +118,7 @@ export default function SettingsPage() {
         <header className="mb-8">
           <h1 className="font-mono text-2xl font-black tracking-tight">Settings</h1>
           <p className="mt-1 font-mono text-xs uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            Identity · Keys · Account
+            Identity · Keys · Safety · Account
           </p>
         </header>
 
@@ -206,6 +210,9 @@ export default function SettingsPage() {
               older messages — re-register afterward to publish the new public key.
             </p>
           </section>
+
+          {/* Safety & privacy (on-device moderation, stranger mode) */}
+          <SafetySettings />
 
           {/* Appearance */}
           <section className="brutal-static bg-[var(--bg-surface)] p-6">

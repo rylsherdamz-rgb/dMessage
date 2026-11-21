@@ -18,7 +18,10 @@
 import { joinRoom, type Room } from 'trystero';
 import { decrypt, deriveSharedKey, encrypt, exportPublicKey, generateKeyPair, importPublicKey } from './crypto';
 
-const APP_ID = 'dmessage.stranger.v1';
+import { STRANGER_APP_ID } from './stranger-blocklist';
+
+export { STRANGER_APP_ID };
+const APP_ID = STRANGER_APP_ID;
 const LOBBY = 'lobby';
 const STRICT_INTEREST_MS = 8_000;
 const PAIR_TICK_MS = 1_200;
@@ -58,6 +61,8 @@ interface SeekState {
 interface PairProposal {
   room: string;
   pw: string;
+  /** Proposer's interests, so the receiver can decide even before user state syncs. */
+  interests: string[];
 }
 
 interface Sealed {
@@ -91,6 +96,15 @@ export function normalizeInterests(raw: string): string[] {
         .filter((s) => s.length > 0 && s.length <= 32),
     ),
   ).slice(0, 10);
+}
+
+/** Opt-in diagnostics: localStorage.setItem('dmessage:debug', '1') */
+function dbg(...args: unknown[]) {
+  try {
+    if (localStorage.getItem('dmessage:debug') === '1') console.debug('[stranger]', ...args);
+  } catch {
+    /* ignore */
+  }
 }
 
 function roomConfig(password?: string) {
@@ -178,6 +192,8 @@ export class StrangerSession {
     });
 
     const seek = lobby.makeUserState<SeekState>('seek', { interests: this.interests, t: Date.now() });
+    // Initial values are local-only until set() — publish explicitly so peers see us.
+    void seek.set({ interests: this.interests, t: Date.now() });
     const pair = lobby.makeAction<PairProposal, boolean>('pair', { kind: 'request' });
 
     void lobby.getSelf().then((s) => {
@@ -190,23 +206,30 @@ export class StrangerSession {
 
     // Incoming proposal: accept if we're free and the proposer isn't blocked.
     pair.onRequest(async (proposal, ctx) => {
+      dbg('proposal from', ctx.userId, { busy: this.busy, phase: this.phase });
       if (this.busy || this.phase !== 'searching' || this.isBlocked(ctx.userId)) return false;
-      const theirs = seek.get(ctx.userId)?.interests ?? [];
+      const theirs = Array.isArray(proposal?.interests) ? proposal.interests : (seek.get(ctx.userId)?.interests ?? []);
       const common = this.interests.filter((i) => theirs.includes(i));
       if (!this.interestOk(common.length)) return false;
+      if (typeof proposal?.room !== 'string' || typeof proposal?.pw !== 'string') return false;
       this.busy = true;
-      void this.meet(proposal, ctx.userId, common);
+      // Stay in the lobby briefly so our "yes" reaches the proposer before we leave.
+      void this.meet(proposal, ctx.userId, common, 2_000);
       return true;
     });
 
     const tick = async () => {
       if (this.busy || this.phase !== 'searching' || !this.selfPeerId) return;
       const peers = lobby.getPeers();
+      dbg('tick', {
+        self: this.selfPeerId,
+        peers: Object.entries(peers).map(([id, i]) => ({ id, userId: i.userId, hasSeek: seek.has(i.userId) })),
+        seekAll: Object.keys(seek.getAll()),
+      });
       const candidates = Object.entries(peers)
         .filter(([peerId, info]) => {
           if (peerId <= this.selfPeerId) return false; // lower id proposes
-          if (this.isBlocked(info.userId) || this.recentlySkipped.has(info.userId)) return false;
-          return seek.has(info.userId);
+          return !this.isBlocked(info.userId) && !this.recentlySkipped.has(info.userId);
         })
         .map(([peerId, info]) => {
           const theirs = seek.get(info.userId)?.interests ?? [];
@@ -219,15 +242,15 @@ export class StrangerSession {
       const pick = candidates[0];
       if (!pick) return;
       this.busy = true;
-      const proposal: PairProposal = { room: randomId(), pw: randomId(24) };
+      const proposal: PairProposal = { room: randomId(), pw: randomId(24), interests: this.interests };
       try {
         const ok = await pair.request(proposal, { target: pick.peerId, timeoutMs: 4000 });
         if (ok && this.phase === 'searching') {
           void this.meet(proposal, pick.userId, pick.common);
           return;
         }
-      } catch {
-        /* timeout / disconnected — try someone else */
+      } catch (err) {
+        dbg('proposal failed', err);
       }
       this.busy = false;
     };
@@ -242,18 +265,20 @@ export class StrangerSession {
     return Date.now() - this.searchStarted > STRICT_INTEREST_MS;
   }
 
-  private leaveLobby() {
+  private leaveLobby(delayMs = 0) {
     if (this.pairTimer) clearInterval(this.pairTimer);
     this.pairTimer = null;
     const l = this.lobby;
     this.lobby = null;
-    void l?.leave();
+    if (!l) return;
+    if (delayMs > 0) setTimeout(() => void l.leave(), delayMs);
+    else void l.leave();
   }
 
   // ── Private chat room ───────────────────────────────────────────────────────
 
-  private async meet(proposal: PairProposal, strangerUserId: string, common: string[]) {
-    this.leaveLobby();
+  private async meet(proposal: PairProposal, strangerUserId: string, common: string[], leaveDelayMs = 0) {
+    this.leaveLobby(leaveDelayMs);
     this.setPhase('connecting');
     this.strangerUserId = strangerUserId;
     this.emit('common', common);
@@ -427,24 +452,4 @@ async function safetyCode(a: string, b: string): Promise<string> {
   return groups.join(' ');
 }
 
-// ── Local block list (never leaves the device) ────────────────────────────────
-
-const BLOCK_KEY = 'dmessage:stranger:blocked';
-
-export function loadBlocked(): Set<string> {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(BLOCK_KEY) || '[]'));
-  } catch {
-    return new Set();
-  }
-}
-
-export function blockUser(userId: string) {
-  const s = loadBlocked();
-  s.add(userId);
-  try {
-    localStorage.setItem(BLOCK_KEY, JSON.stringify(Array.from(s).slice(-500)));
-  } catch {
-    /* ignore */
-  }
-}
+export { blockUser, clearBlocked, loadBlocked } from './stranger-blocklist';

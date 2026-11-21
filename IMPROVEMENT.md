@@ -98,6 +98,19 @@ Topic-based public channels stored in a new contract. Messages are publicly visi
 ### Cross-chain Identity
 Let users link their Stellar address to an Ethereum or Solana address via a signed message. Display all linked identities on the profile.
 
+## Shipped — Stranger Mode & On-Device Safety
+
+- [x] Omegle-style random chat (`/stranger`), fully peer-to-peer (Trystero + Nostr signaling + WebRTC)
+- [x] Per-chat ephemeral E2EE with safety codes; interests matching; auto-next; local block list
+- [x] On-device AI moderation for text (stranger chat + DMs), images (DMs) and video frames — no data leaves the device
+- [x] Safety & Privacy settings; unit + two-browser e2e tests
+
+### Next ideas
+- **Group "rooms" by interest** — small P2P rooms with the same on-device moderation.
+- **Decentralized reputation** — optional, privacy-preserving abuse attestations (e.g. Soroban + zero-knowledge) so blocks can be shared without revealing chats.
+- **Self-hosted TURN** for users behind strict NATs.
+- **Multilingual text model** (e.g. a multilingual toxicity classifier) for Filipino/Taglish chats.
+
 ## Phase 5 — Ecosystem (Variable Impact, Variable Effort)
 
 ### DAO Governance

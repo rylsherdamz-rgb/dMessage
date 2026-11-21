@@ -32,7 +32,16 @@ export interface ModerationState {
 }
 
 const SETTINGS_KEY = 'dmessage:moderation:ml';
+const IMAGE_SETTINGS_KEY = 'dmessage:moderation:image-ml';
 const MODEL_ID = process.env.NEXT_PUBLIC_MODERATION_MODEL || 'Xenova/toxic-bert';
+const IMAGE_MODEL_ID = process.env.NEXT_PUBLIC_IMAGE_MODERATION_MODEL || 'AdamCodd/vit-base-nsfw-detector';
+
+export interface ImageVerdict {
+  action: 'allow' | 'block';
+  /** Probability (0–1) that the image is sexual/explicit. */
+  nsfw: number;
+  labels: ModerationLabel[];
+}
 
 export const LABEL_TEXT: Record<string, string> = {
   toxic: 'toxic',
@@ -44,6 +53,7 @@ export const LABEL_TEXT: Record<string, string> = {
   minor_safety: 'possible child-safety risk',
   scam: 'possible scam',
   link: 'suspicious link',
+  nsfw: 'explicit image',
 };
 
 export const PII_TEXT: Record<string, string> = {
@@ -54,10 +64,9 @@ export const PII_TEXT: Record<string, string> = {
   address: 'a street address',
 };
 
-/** Whether the user wants the ML model (defaults on, off for data-saver). */
-export function getMlPreference(): boolean {
+function readPref(key: string): boolean {
   try {
-    const v = localStorage.getItem(SETTINGS_KEY);
+    const v = localStorage.getItem(key);
     if (v !== null) return v === '1';
     const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
     return !conn?.saveData;
@@ -66,13 +75,35 @@ export function getMlPreference(): boolean {
   }
 }
 
-export function setMlPreference(on: boolean) {
+function writePref(key: string, on: boolean) {
   try {
-    localStorage.setItem(SETTINGS_KEY, on ? '1' : '0');
+    localStorage.setItem(key, on ? '1' : '0');
   } catch {
     /* ignore */
   }
-  getModerator()?.init(on);
+}
+
+/** Whether the user wants the text ML model (defaults on, off for data-saver). */
+export function getMlPreference(): boolean {
+  return readPref(SETTINGS_KEY);
+}
+
+export function setMlPreference(on: boolean) {
+  writePref(SETTINGS_KEY, on);
+  getModerator()?.init();
+}
+
+/**
+ * Whether the image/video-frame model may be used. It is only downloaded the
+ * first time an image or video actually needs checking.
+ */
+export function getImageMlPreference(): boolean {
+  return readPref(IMAGE_SETTINGS_KEY);
+}
+
+export function setImageMlPreference(on: boolean) {
+  writePref(IMAGE_SETTINGS_KEY, on);
+  getModerator()?.init();
 }
 
 type Listener = (s: ModerationState) => void;
@@ -81,8 +112,11 @@ class Moderator {
   private worker: Worker;
   private seq = 0;
   private pending = new Map<number, (v: ModerationVerdict) => void>();
+  private pendingImages = new Map<number, (v: ImageVerdict) => void>();
   private listeners = new Set<Listener>();
+  private imageListeners = new Set<Listener>();
   state: ModerationState = { status: 'idle', progress: 0 };
+  imageState: ModerationState = { status: 'idle', progress: 0 };
 
   constructor() {
     this.worker = new Worker('/moderation-worker.js', { type: 'module' });
@@ -91,15 +125,55 @@ class Moderator {
       if (m?.type === 'result') {
         this.pending.get(m.id)?.(m.verdict);
         this.pending.delete(m.id);
+      } else if (m?.type === 'image-result') {
+        this.pendingImages.get(m.id)?.(m.verdict);
+        this.pendingImages.delete(m.id);
       } else if (m?.type === 'status') {
         this.state = { status: m.status, progress: m.progress ?? 0, error: m.error };
         this.listeners.forEach((l) => l(this.state));
+      } else if (m?.type === 'image-status') {
+        this.imageState = { status: m.status, progress: m.progress ?? 0, error: m.error };
+        this.imageListeners.forEach((l) => l(this.imageState));
       }
     };
   }
 
-  init(useML: boolean) {
-    this.worker.postMessage({ type: 'init', useML, modelId: MODEL_ID });
+  init() {
+    this.worker.postMessage({
+      type: 'init',
+      useML: getMlPreference(),
+      useImageML: getImageMlPreference(),
+      modelId: MODEL_ID,
+      imageModelId: IMAGE_MODEL_ID,
+    });
+  }
+
+  /**
+   * Classifies an image locally. Accepts an ImageBitmap (e.g. a video frame,
+   * transferred zero-copy), a Blob, or a URL the browser is already loading.
+   */
+  classifyImage(image: ImageBitmap | Blob | string, timeoutMs = 60_000): Promise<ImageVerdict> {
+    const id = ++this.seq;
+    const allow: ImageVerdict = { action: 'allow', nsfw: 0, labels: [] };
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        if (this.pendingImages.delete(id)) resolve(allow);
+      }, timeoutMs);
+      this.pendingImages.set(id, (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      });
+      const transfer = typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap ? [image] : [];
+      this.worker.postMessage({ type: 'classify-image', id, image }, transfer);
+    });
+  }
+
+  subscribeImage(l: Listener) {
+    this.imageListeners.add(l);
+    l(this.imageState);
+    return () => {
+      this.imageListeners.delete(l);
+    };
   }
 
   classify(text: string): Promise<ModerationVerdict> {
@@ -132,7 +206,7 @@ export function getModerator(): Moderator | null {
   if (typeof window === 'undefined' || typeof Worker === 'undefined') return null;
   if (!instance) {
     instance = new Moderator();
-    instance.init(getMlPreference());
+    instance.init();
   }
   return instance;
 }

@@ -8,6 +8,8 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  Repeat,
+  ScanEye,
   Send,
   ShieldCheck,
   Shuffle,
@@ -18,12 +20,15 @@ import {
 } from 'lucide-react';
 import { Nav } from '@/components/layout/Nav';
 import { useWallet } from '@/components/wallet/WalletProvider';
-import { useModerationState } from '@/hooks/useModeration';
+import { useImageModerationState, useModerationState } from '@/hooks/useModeration';
+import { playNotification } from '@/lib/sound';
 import {
   describeLabels,
+  getImageMlPreference,
   getMlPreference,
   getModerator,
   PII_TEXT,
+  setImageMlPreference,
   setMlPreference,
   type ModerationVerdict,
 } from '@/lib/moderation';
@@ -38,7 +43,11 @@ import {
 } from '@/lib/stranger';
 
 const AGE_KEY = 'dmessage:stranger:18plus';
+const AUTO_NEXT_KEY = 'dmessage:stranger:auto-next';
 const STRIKES_TO_AUTOSKIP = 3;
+const FRAME_SAMPLE_MS = 3000;
+/** Consecutive explicit frames before the video is force-blurred. */
+const FRAMES_TO_FLAG = 2;
 
 interface ChatLine extends StrangerMessage {
   verdict?: ModerationVerdict | null;
@@ -63,11 +72,15 @@ const END_TEXT: Record<EndReason, string> = {
 export default function StrangerPage() {
   const { address } = useWallet();
   const modState = useModerationState();
+  const imageModState = useImageModerationState();
 
   const [ageOk, setAgeOk] = useState(false);
   const [interestsRaw, setInterestsRaw] = useState('');
   const [videoOn, setVideoOn] = useState(false);
   const [mlOn, setMlOn] = useState(false);
+  const [imageMlOn, setImageMlOn] = useState(false);
+  const [autoNext, setAutoNext] = useState(false);
+  const [videoFlagged, setVideoFlagged] = useState(false);
 
   const [phase, setPhase] = useState<StrangerPhase>('idle');
   const [lines, setLines] = useState<ChatLine[]>([]);
@@ -84,6 +97,10 @@ export default function StrangerPage() {
   const [hasLocalVideo, setHasLocalVideo] = useState(false);
 
   const session = useRef<StrangerSession | null>(null);
+  const autoNextRef = useRef(autoNext);
+  useEffect(() => {
+    autoNextRef.current = autoNext;
+  }, [autoNext]);
   const localStream = useRef<MediaStream | null>(null);
   const strikes = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -96,10 +113,12 @@ export default function StrangerPage() {
     /* eslint-disable react-hooks/set-state-in-effect */
     try {
       setAgeOk(localStorage.getItem(AGE_KEY) === '1');
+      setAutoNext(localStorage.getItem(AUTO_NEXT_KEY) === '1');
     } catch {
       /* ignore */
     }
     setMlOn(getMlPreference());
+    setImageMlOn(getImageMlPreference());
     getModerator();
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
@@ -141,6 +160,43 @@ export default function StrangerPage() {
     void s.stop('auto-moderation');
   }, []);
 
+  // On-device video safety: sample a frame every few seconds and classify it
+  // locally. Frames never leave this browser.
+  useEffect(() => {
+    if (!remoteStream || !imageMlOn) return;
+    let busy = false;
+    let explicitInARow = 0;
+    let lastStrike = 0;
+    const timer = setInterval(async () => {
+      const v = remoteVideo.current;
+      if (busy || !v || v.readyState < 2 || !v.videoWidth) return;
+      busy = true;
+      try {
+        const frame = await createImageBitmap(v);
+        const verdict = await getModerator()?.classifyImage(frame, 20_000);
+        if (verdict?.action === 'block') {
+          explicitInARow += 1;
+          if (explicitInARow >= FRAMES_TO_FLAG) {
+            setVideoFlagged(true);
+            setRemoteRevealed(false);
+            if (Date.now() - lastStrike > 15_000) {
+              lastStrike = Date.now();
+              strikes.current += 1;
+              if (strikes.current >= STRIKES_TO_AUTOSKIP) autoModerate();
+            }
+          }
+        } else {
+          explicitInARow = 0;
+        }
+      } catch {
+        /* frame not ready — try next tick */
+      } finally {
+        busy = false;
+      }
+    }, FRAME_SAMPLE_MS);
+    return () => clearInterval(timer);
+  }, [remoteStream, imageMlOn, autoModerate]);
+
   const handleIncoming = useCallback(
     async (m: StrangerMessage) => {
       if (m.from !== 'stranger') {
@@ -149,6 +205,7 @@ export default function StrangerPage() {
       }
       // Hold the message until the local verdict arrives (usually a few ms).
       addLine({ ...m, verdict: null });
+      if (document.hidden) playNotification();
       const verdict = (await getModerator()?.classify(m.text)) ?? null;
       patchLine(m.id, { verdict: verdict ?? { action: 'allow', severe: false, labels: [], pii: [] } });
       if (verdict?.severe) {
@@ -190,7 +247,9 @@ export default function StrangerPage() {
         setSafety('');
         strikes.current = 0;
         setRemoteRevealed(false);
+        setVideoFlagged(false);
       }
+      if (p === 'chatting') playNotification();
     });
     s.on('message', (m) => void handleIncoming(m));
     s.on('typing', setTyping);
@@ -207,9 +266,15 @@ export default function StrangerPage() {
         contact: addr,
       }),
     );
-    s.on('ended', (r) =>
-      addLine({ id: `end-${Date.now()}`, from: 'system', text: END_TEXT[r], at: Date.now() }),
-    );
+    s.on('ended', (r) => {
+      addLine({ id: `end-${Date.now()}`, from: 'system', text: END_TEXT[r], at: Date.now() });
+      // Auto-next: requeue after the stranger leaves (not when *you* left).
+      if (autoNextRef.current && r !== 'you-left') {
+        setTimeout(() => {
+          if (session.current === s && s.phase === 'ended') void s.start();
+        }, 1500);
+      }
+    });
     await s.start();
   }, [videoOn, interestsRaw, handleIncoming, addLine]);
 
@@ -350,6 +415,37 @@ export default function StrangerPage() {
               />
             </div>
 
+            <div className="mt-3 space-y-3">
+              <Toggle
+                checked={imageMlOn}
+                onChange={(v) => {
+                  setImageMlOn(v);
+                  setImageMlPreference(v);
+                }}
+                icon={<ScanEye className="h-4 w-4" aria-hidden />}
+                label="AI video & image safety"
+                hint={
+                  imageMlOn
+                    ? imageModelHint(imageModState.status, imageModState.progress)
+                    : 'Off: stranger video is only blurred until you reveal it.'
+                }
+              />
+              <Toggle
+                checked={autoNext}
+                onChange={(v) => {
+                  setAutoNext(v);
+                  try {
+                    localStorage.setItem(AUTO_NEXT_KEY, v ? '1' : '0');
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                icon={<Repeat className="h-4 w-4" aria-hidden />}
+                label="Auto-next"
+                hint="Automatically find someone new when a stranger leaves."
+              />
+            </div>
+
             <label className="mt-6 flex cursor-pointer items-start gap-3 font-mono text-xs leading-relaxed">
               <input
                 type="checkbox"
@@ -403,13 +499,24 @@ export default function StrangerPage() {
                     playsInline
                     className={`h-full w-full object-cover transition-[filter] ${remoteRevealed ? '' : 'blur-2xl'}`}
                   />
+                  {videoFlagged && !remoteRevealed && (
+                    <div className="absolute inset-x-0 top-0 bg-[var(--danger)]/90 px-2 py-1 text-center font-mono text-[10px] uppercase tracking-wider text-white">
+                      On-device AI detected explicit video
+                    </div>
+                  )}
                   <button
                     onClick={() => setRemoteRevealed((r) => !r)}
                     className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-white"
                   >
                     {remoteRevealed ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                    {remoteRevealed ? 'Blur' : 'Reveal stranger'}
+                    {remoteRevealed ? 'Blur' : videoFlagged ? 'Show anyway' : 'Reveal stranger'}
                   </button>
+                  {imageMlOn && (
+                    <span className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/70 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-white">
+                      <ScanEye className="h-3 w-3" aria-hidden />
+                      {imageModState.status === 'loading' ? `AI ${Math.round(imageModState.progress * 100)}%` : 'AI watching locally'}
+                    </span>
+                  )}
                 </>
               ) : (
                 <div className="flex h-full items-center justify-center font-mono text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
@@ -557,6 +664,19 @@ function modelHint(status: string, progress: number) {
       return 'Model failed to load; built-in safety rules are still active.';
     default:
       return 'Starting…';
+  }
+}
+
+function imageModelHint(status: string, progress: number) {
+  switch (status) {
+    case 'loading':
+      return `Downloading image model… ${Math.round(progress * 100)}% (one time, then cached)`;
+    case 'ready':
+      return 'Ready. Video frames are checked in your browser and auto-blurred if explicit.';
+    case 'error':
+      return 'Image model failed to load; video stays blurred until you reveal it.';
+    default:
+      return 'Downloads (~90 MB, once) only when video or an image first needs checking. Frames never leave your device.';
   }
 }
 

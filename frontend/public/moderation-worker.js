@@ -8,7 +8,7 @@
  *   - classifies it locally (rules + an ONNX model running in WebAssembly/WebGPU),
  *   - returns only a verdict (labels + scores).
  *
- * It never sends message text anywhere. The only network requests it makes are
+ * It never sends message text, images or video frames anywhere. The only network requests it makes are
  * one-time downloads of the public model weights and runtime (cached by the
  * browser afterwards). No API keys, no moderation server, no telemetry.
  * Anyone can audit that by reading this file: there is no fetch() of user data.
@@ -110,6 +110,72 @@ async function runModel(text) {
   return list.map((r) => ({ label: r.label, score: r.score }));
 }
 
+// ── Layer 3: on-device image / video-frame safety (lazy, cached) ─────────────
+
+let imageClassifierPromise = null;
+let imageModelId = 'AdamCodd/vit-base-nsfw-detector';
+let useImageML = false;
+
+function loadImageClassifier() {
+  if (imageClassifierPromise) return imageClassifierPromise;
+  imageClassifierPromise = (async () => {
+    const { pipeline, env } = await import(TRANSFORMERS_URL);
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+    self.postMessage({ type: 'image-status', status: 'loading', progress: 0 });
+    const progress = (p) => {
+      if (p && p.status === 'progress' && typeof p.progress === 'number') {
+        self.postMessage({ type: 'image-status', status: 'loading', progress: p.progress / 100 });
+      }
+    };
+    let clf;
+    try {
+      clf = await pipeline('image-classification', imageModelId, { device: 'webgpu', dtype: 'q8', progress_callback: progress });
+    } catch {
+      clf = await pipeline('image-classification', imageModelId, { dtype: 'q8', progress_callback: progress });
+    }
+    self.postMessage({ type: 'image-status', status: 'ready', progress: 1 });
+    return clf;
+  })().catch((err) => {
+    imageClassifierPromise = null;
+    self.postMessage({ type: 'image-status', status: 'error', error: String((err && err.message) || err) });
+    return null;
+  });
+  return imageClassifierPromise;
+}
+
+/** Converts an ImageBitmap / Blob / URL into something the pipeline accepts. */
+async function toImageInput(input) {
+  const { RawImage } = await import(TRANSFORMERS_URL);
+  if (typeof input === 'string') return RawImage.fromURL(input);
+  if (input instanceof Blob) return RawImage.fromBlob(input);
+  // ImageBitmap (e.g. a sampled video frame) → downscaled blob.
+  const scale = Math.min(1, 384 / Math.max(input.width, input.height));
+  const w = Math.max(1, Math.round(input.width * scale));
+  const h = Math.max(1, Math.round(input.height * scale));
+  const canvas = new OffscreenCanvas(w, h);
+  canvas.getContext('2d').drawImage(input, 0, 0, w, h);
+  if (typeof input.close === 'function') input.close();
+  return RawImage.fromBlob(await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 }));
+}
+
+const NSFW_THRESHOLD = 0.8;
+
+async function classifyImage(input) {
+  if (!useImageML) return { action: 'allow', nsfw: 0, labels: [] };
+  const clf = await loadImageClassifier();
+  if (!clf) return { action: 'allow', nsfw: 0, labels: [] };
+  const out = await clf(await toImageInput(input), { top_k: null });
+  const list = Array.isArray(out[0]) ? out[0] : out;
+  const nsfw = list.find((r) => /nsfw|porn|hentai|sexy/i.test(r.label));
+  const score = nsfw ? nsfw.score : 0;
+  return {
+    action: score >= NSFW_THRESHOLD ? 'block' : 'allow',
+    nsfw: score,
+    labels: score >= NSFW_THRESHOLD ? [{ label: 'nsfw', score }] : [],
+  };
+}
+
 // ── Policy ────────────────────────────────────────────────────────────────────
 
 const SEVERE = new Set(['severe_toxic', 'threat', 'identity_hate', 'minor_safety']);
@@ -133,8 +199,19 @@ self.onmessage = async (e) => {
   const msg = e.data || {};
   if (msg.type === 'init') {
     if (msg.modelId) modelId = msg.modelId;
+    if (msg.imageModelId) imageModelId = msg.imageModelId;
+    useImageML = !!msg.useImageML;
     if (msg.useML) loadClassifier();
     else self.postMessage({ type: 'status', status: 'rules-only', progress: 0 });
+    return;
+  }
+  if (msg.type === 'classify-image') {
+    try {
+      const verdict = await classifyImage(msg.image);
+      self.postMessage({ type: 'image-result', id: msg.id, verdict });
+    } catch (err) {
+      self.postMessage({ type: 'image-result', id: msg.id, verdict: { action: 'allow', nsfw: 0, labels: [], error: String(err) } });
+    }
     return;
   }
   if (msg.type === 'classify') {
