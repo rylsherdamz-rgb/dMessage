@@ -113,6 +113,12 @@ export function HeroScene() {
             Start Chatting
             <ArrowRight className="h-4 w-4" strokeWidth={2.5} aria-hidden />
           </Link>
+          <Link
+            href="/stranger"
+            className="brutal-accent flex items-center gap-2 bg-black px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-[var(--accent)] sm:px-8 sm:py-4 sm:text-sm"
+          >
+            Talk to a stranger
+          </Link>
           <WalletConnector />
         </motion.div>
       </div>

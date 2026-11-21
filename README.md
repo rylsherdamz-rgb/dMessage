@@ -36,6 +36,8 @@ A world where:
 - **Wallet Integration**: Native Stellar transaction signing for contract interactions
 - **Low Gas Costs**: Optimized Soroban storage patterns using persistent storage
 - **Gasless / Fee Sponsorship**: A sponsor/relayer can pay a user's fee via Stellar fee-bump, so new users transact without holding XLM (on-chain sponsorship accounting via `*_sponsored` functions)
+- **Stranger Mode (Omegle-style)**: Random 1:1 text/video chat with strangers, matched peer-to-peer with no server — see [Stranger Mode](#stranger-mode--serverless-random-chat)
+- **On-Device AI Moderation**: A toxicity model runs inside your browser; abusive messages are hidden and oversharing is flagged without any message leaving your device
 - **Open Source**: Fully auditable smart contracts and frontend code
 - **Dark Theme**: Modern UI with Tailwind CSS v4, custom OKLCH color system
 - **3D Landing Page**: Interactive hero scene with Three.js and Framer Motion
@@ -114,6 +116,56 @@ use (see [Advanced Features](#advanced-features)).
 - `mark_as_read_sponsored(sponsor, caller, index)` — Gasless mark-as-read; `sponsor` pays via fee-bump
 - `my_message_count(user)` — Get the total message count for a user
 - `get_sponsored_count(sponsor)` — How many actions a sponsor has paid for
+
+## Stranger Mode — Serverless Random Chat
+
+`/stranger` turns dMessage into an Omegle-style random chat **without adding any server**. Every existing feature (wallet identity, on-chain DMs, gasless relayer, archive, settings) is unchanged.
+
+```
+ Browser A ──┐                                ┌── Browser B
+             │  1. join "lobby" (Trystero)    │
+             ├──── public Nostr relays ───────┤   relays only carry encrypted
+             │     (WebRTC handshakes only)   │   WebRTC offers for a random topic
+             │                                │
+             ├════ 2. direct WebRTC (DTLS) ═══┤   lower peerId proposes a private
+             │     pair → {roomId, password}  │   room id + password
+             │                                │
+             ├════ 3. private room, maxUsers 2 ═══ ECDH P-256 → AES-GCM-256 per chat
+             │     text · typing · video      │   + safety code to compare
+```
+
+- **Matchmaking**: peers in the lobby pair themselves (lowest `peerId` proposes, a busy peer declines). Interests are matched first; after 8 s anyone is fair game.
+- **Encryption**: WebRTC is already DTLS-encrypted; every chat adds a fresh ephemeral ECDH key exchange (same primitives as dMessage DMs) and shows a safety code.
+- **Nothing persisted**: keys live in memory and die with the chat.
+- **Anonymous identity**: Trystero's per-browser signing key (not your wallet) lets you **block** someone locally so you are never re-matched.
+- **Bridge to dMessage**: if your wallet is connected you can share your address and continue in your encrypted on-chain inbox.
+- **Safety**: 18+ confirmation, stranger video blurred until you reveal it, Esc-Esc to skip.
+
+### On-device AI moderation (no data leaves the device)
+
+`public/moderation-worker.js` is a standalone Web Worker — the **only** code that classifies message text:
+
+| Layer | What it does | Cost |
+|---|---|---|
+| Rules (always on) | threats, child-safety patterns, scams, suspicious links, personal-info detection (phone, email, address, Stellar secret key, seed phrase) | 0 MB, instant |
+| ML (default on, off with Data Saver) | [`Xenova/toxic-bert`](https://huggingface.co/Xenova/toxic-bert) via Transformers.js (WebGPU → WASM fallback): toxic, insult, obscene, threat, identity hate | ~110 MB one-time download, cached by the browser |
+
+Policy:
+- **Incoming** (stranger chat *and* regular DMs): flagged messages are hidden behind "Tap to show". Three severe flags from one stranger → auto-disconnect + local block.
+- **Outgoing**: severe messages are held for rephrasing; personal info or mild toxicity asks "Send anyway?".
+- **Privacy**: the worker only downloads public model weights. It never sends text anywhere, there is no moderation API, and verdicts stay on the device.
+
+### Configuration (all optional)
+
+```bash
+NEXT_PUBLIC_MODERATION_MODEL=Xenova/toxic-bert        # any Transformers.js text-classification model
+NEXT_PUBLIC_STRANGER_RELAYS=wss://relay.a,wss://relay.b  # custom Nostr relays (default: Trystero's list)
+NEXT_PUBLIC_TURN_URL=turn:turn.example.com:3478         # TURN for users behind strict NATs
+NEXT_PUBLIC_TURN_USERNAME=
+NEXT_PUBLIC_TURN_CREDENTIAL=
+```
+
+> Testing locally: tabs in the same browser profile share an anonymous identity, so use one normal and one private/incognito window to match with yourself.
 
 ## Advanced Features
 

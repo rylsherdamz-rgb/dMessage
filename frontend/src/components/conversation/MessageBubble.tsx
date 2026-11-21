@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, CheckCheck, File, Download, Loader2 } from 'lucide-react';
+import { Check, CheckCheck, File, Download, Loader2, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { useProfile } from '@/hooks/useProfile';
 import { relativeTime } from '@/lib/time';
 import { fetchPayload, getIpfsUrl } from '@/lib/ipfs';
 import type { MessagePayload } from '@/lib/ipfs';
+import { useVerdict } from '@/hooks/useModeration';
+import { describeLabels } from '@/lib/moderation';
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif', 'bmp'];
 
@@ -59,6 +61,11 @@ export function MessageBubble({
 
   const displayText = payload?.t ?? (isCid ? '' : content);
 
+  // On-device moderation of RECEIVED text: runs locally, nothing is uploaded.
+  const verdict = useVerdict(displayText, !isOwn);
+  const [revealed, setRevealed] = useState(false);
+  const hiddenByAi = !isOwn && !revealed && !!verdict && verdict.action !== 'allow';
+
   const timeStr = relativeTime(timestamp);
 
   return (
@@ -92,7 +99,16 @@ export function MessageBubble({
           {payloadError && (
             <p className="font-mono text-[11px] italic text-[var(--text-faint)] sm:text-xs">Failed to load message</p>
           )}
-          {!loadingPayload && displayText && (
+          {!loadingPayload && displayText && hiddenByAi && (
+            <button
+              onClick={() => setRevealed(true)}
+              className="flex items-center gap-2 text-left font-mono text-[11px] text-[var(--amber)] sm:text-xs"
+            >
+              <EyeOff className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
+              Hidden by on-device AI ({describeLabels(verdict!.labels)}). Tap to show.
+            </button>
+          )}
+          {!loadingPayload && displayText && !hiddenByAi && (
             <p className="font-mono text-xs leading-relaxed break-words sm:text-sm">{displayText}</p>
           )}
           {!loadingPayload && payload?.f && (
