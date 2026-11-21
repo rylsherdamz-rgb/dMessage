@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, CheckCheck, File, Download, Loader2 } from 'lucide-react';
+import { Check, CheckCheck, File, Download, Loader2, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { useProfile } from '@/hooks/useProfile';
 import { relativeTime } from '@/lib/time';
 import { fetchPayload, getIpfsUrl } from '@/lib/ipfs';
 import type { MessagePayload } from '@/lib/ipfs';
+import { useImageVerdict, useVerdict } from '@/hooks/useModeration';
+import { describeLabels } from '@/lib/moderation';
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif', 'bmp'];
 
@@ -59,6 +61,20 @@ export function MessageBubble({
 
   const displayText = payload?.t ?? (isCid ? '' : content);
 
+  // On-device moderation of RECEIVED text: runs locally, nothing is uploaded.
+  const verdict = useVerdict(displayText, !isOwn);
+  const [revealed, setRevealed] = useState(false);
+  const hiddenByAi = !isOwn && !revealed && !!verdict && verdict.action !== 'allow';
+
+  // Same for received images: blurred until the local image model clears them.
+  const receivedImageUrl =
+    !isOwn && payload?.f && isImageFile(payload.n) ? getIpfsUrl(payload.f) : undefined;
+  const imageVerdict = useImageVerdict(receivedImageUrl, !!receivedImageUrl);
+  const [imageRevealed, setImageRevealed] = useState(false);
+  const imageChecking = !!receivedImageUrl && imageVerdict === null;
+  const imageHidden =
+    !!receivedImageUrl && !imageRevealed && (imageChecking || imageVerdict?.action === 'block');
+
   const timeStr = relativeTime(timestamp);
 
   return (
@@ -92,7 +108,16 @@ export function MessageBubble({
           {payloadError && (
             <p className="font-mono text-[11px] italic text-[var(--text-faint)] sm:text-xs">Failed to load message</p>
           )}
-          {!loadingPayload && displayText && (
+          {!loadingPayload && displayText && hiddenByAi && (
+            <button
+              onClick={() => setRevealed(true)}
+              className="flex items-center gap-2 text-left font-mono text-[11px] text-[var(--amber)] sm:text-xs"
+            >
+              <EyeOff className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
+              Hidden by on-device AI ({describeLabels(verdict!.labels)}). Tap to show.
+            </button>
+          )}
+          {!loadingPayload && displayText && !hiddenByAi && (
             <p className="font-mono text-xs leading-relaxed break-words sm:text-sm">{displayText}</p>
           )}
           {!loadingPayload && payload?.f && (
@@ -102,16 +127,35 @@ export function MessageBubble({
                   href={getIpfsUrl(payload.f)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (imageHidden && !imageChecking) {
+                      e.preventDefault();
+                      setImageRevealed(true);
+                    }
+                  }}
                   className="group relative block overflow-hidden border border-[var(--border)]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- IPFS-hosted remote image */}
                   <img
                     src={getIpfsUrl(payload.f)}
                     alt={payload.n ?? 'Image'}
-                    className="max-h-48 w-full object-cover transition-opacity group-hover:opacity-90 sm:max-h-64"
+                    className={`max-h-48 w-full object-cover transition-[opacity,filter] group-hover:opacity-90 sm:max-h-64 ${imageHidden ? 'blur-2xl' : ''}`}
                     loading="lazy"
                   />
+                  {imageHidden && (
+                    <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 p-2 text-center font-mono text-[10px] uppercase tracking-wider text-white">
+                      {imageChecking ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Checking on-device…
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="h-3.5 w-3.5" aria-hidden /> Hidden by on-device AI. Tap to show.
+                        </>
+                      )}
+                    </div>
+                  )}
                   <div className="absolute bottom-1 right-1 flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-white sm:text-[10px]">
                     <Download className="h-3 w-3" strokeWidth={2} />
                     <span className="hidden sm:inline">{payload.n}</span>

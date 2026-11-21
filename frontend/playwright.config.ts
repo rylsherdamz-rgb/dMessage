@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  // Local Nostr relay so Stranger Mode matchmaking is testable offline.
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -23,5 +25,6 @@ export default defineConfig({
     port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: { NEXT_PUBLIC_STRANGER_RELAYS: 'ws://127.0.0.1:7777' },
   },
 });

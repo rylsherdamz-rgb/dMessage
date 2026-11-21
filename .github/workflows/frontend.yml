@@ -32,6 +32,10 @@ jobs:
         run: npm run lint
         working-directory: frontend
 
+      - name: Unit tests (on-device moderation)
+        run: npm run test:unit
+        working-directory: frontend
+
       - name: Type check
         run: npx tsc --noEmit
         working-directory: frontend

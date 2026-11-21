@@ -1,6 +1,7 @@
 import { HeroScene } from '@/components/hero/HeroScene';
 import { Marquee } from '@/components/landing/Marquee';
 import { Features } from '@/components/landing/Features';
+import { StrangerMode } from '@/components/landing/StrangerMode';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { Contracts } from '@/components/landing/Contracts';
 import { CTA } from '@/components/landing/CTA';
@@ -12,6 +13,7 @@ export default function Home() {
       <HeroScene />
       <Marquee />
       <Features />
+      <StrangerMode />
       <HowItWorks />
       <Contracts />
       <CTA />

@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MessagesSquare, Archive, Settings } from 'lucide-react';
+import { MessagesSquare, Archive, Settings, Shuffle } from 'lucide-react';
 import { WalletConnector } from '@/components/wallet/WalletConnector';
 import { NetworkBadge } from '@/components/ui/NetworkBadge';
 
 const LINKS = [
   { label: 'Chats', href: '/dashboard', Icon: MessagesSquare },
+  { label: 'Strangers', href: '/stranger', Icon: Shuffle },
   { label: 'Archive', href: '/archive', Icon: Archive },
   { label: 'Settings', href: '/settings', Icon: Settings },
 ];
